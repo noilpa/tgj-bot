@@ -15,6 +15,8 @@ type config struct {
 	Jr es.JiraConfig   `json:"jira"`
 }
 
+// test
+
 func main() {
 	cfg, err := readConfig("./conf/test_conf.json")
 	if err != nil {

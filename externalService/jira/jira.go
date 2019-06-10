@@ -1,4 +1,4 @@
-package externalService
+package jira
 
 type JiraConfig struct {
 

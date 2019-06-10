@@ -4,3 +4,7 @@
 \.idea/
 
 conf/test_conf\.json
+
+tgj\.db
+
+bin/

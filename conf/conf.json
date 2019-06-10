@@ -1,9 +1,18 @@
 {
-  "tg": {
+  "telegram": {
     "token": "xxxxxx-xxxxx-xxxxxx",
     "update_timeout": 60,
-    "update_offset": 0
+    "update_offset": 0,
+    "proxy": ""
   },
-  "gitlab": {},
-  "jira": {}
+  "gitlab": {
+    "token": "xxxxxx-xxxxxx-xxxxx",
+    "project_id": "1234567890-87654"
+},
+  "jira": {},
+  "database": {
+    "driver": "sqlite3",
+    "dsn": "./tgj.db",
+    "is_need_remove_old_db": false
+  }
 }

@@ -6,52 +6,61 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	es "tgj-bot/externalService"
+	"tgj-bot/app"
+	"tgj-bot/externalService/database"
+	"tgj-bot/externalService/telegram"
 )
 
-type config struct {
-	Tg es.TgConfig     `json:"telegram"`
-	Gl es.GitlabConfig `json:"gitlab"`
-	Jr es.JiraConfig   `json:"jira"`
-}
-
-// test
-
 func main() {
-	cfg, err := readConfig("./conf/test_conf.json")
+	var (
+		appCtx app.App
+		cfg    app.Config
+		err    error
+	)
+
+	if len(os.Args) == 2 {
+		cfg, err = readConfig(os.Args[1])
+	} else {
+		cfg, err = readConfig("../conf/test_conf.json")
+	}
 	if err != nil {
 		panic(err)
 	}
 
-	err = es.RunBot(cfg.Tg)
+	appCtx.Telegram, err = telegram.RunBot(cfg.Tg)
 	if err != nil {
 		panic(err)
 	}
+
+	appCtx.DB, err = database.RunDB(cfg.Db)
+	if err != nil {
+		panic(err)
+	}
+	defer appCtx.DB.Db.Close()
+
+	err = appCtx.Serve(cfg)
+
+	fmt.Println("gogogogo" + err.Error())
 
 }
 
-func readConfig(path string) (config, error) {
-	path, err := filepath.Abs(path)
+func readConfig(path string) (cfg app.Config, err error) {
+	path, err = filepath.Abs(path)
 	fmt.Println(path)
 	if err != nil {
-		return config{}, err
+		return
 	}
-
 	configFile, err := os.Open(path)
 	if err != nil {
-		return config{}, err
+		return
 	}
-
 	defer configFile.Close()
-
 	data, err := ioutil.ReadAll(configFile)
 	if err != nil {
-		return config{}, err
+		return
 	}
-
-	var cfg config
 	if err = json.Unmarshal(data, &cfg); err != nil {
-		return config{}, err
+		return
 	}
-	return cfg, nil
+	return
 }

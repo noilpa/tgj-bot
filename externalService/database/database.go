@@ -6,6 +6,7 @@ import (
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"os"
+	"tgj-bot/models"
 	"tgj-bot/utils"
 )
 
@@ -42,44 +43,30 @@ func initSchema(db *sql.DB) (err error) {
 					  gitlab_id TEXT, 
 					  jira_id TEXT, 
 					  is_active INTEGER, 
-					  role TEXT)`
+					  role TEXT);`
 
 	createMrs := `CREATE TABLE IF NOT EXISTS mrs (
   				    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
-					name TEXT)`
+					name TEXT);`
 
 	createReviews := `CREATE TABLE IF NOT EXISTS reviews (
 					    mr_id INTEGER NOT NULL,
 					    user_id INTEGER NOT NULL,
-					    status TEXT,
+					    is_approved INTEGER,
+					    is_commented INTEGER,
+					    updated_at INTEGER,
 					    PRIMARY KEY (mr_id, user_id),
 					    FOREIGN KEY(mr_id) REFERENCES mrs(id),
-					    FOREIGN KEY(user_id) REFERENCES users(id))`
+					    FOREIGN KEY(user_id) REFERENCES users(id));`
 
-	// status:
-	// like    -> success ^
-	// comment -> pending ^
-	// nothing -> init    ^
-
-	// add column updated_at
-
-	_, err = db.Exec(createUsers)
+	_, err = db.Exec(createUsers + createMrs + createReviews)
 	if err != nil {
-		return errors.New("create table 'users' err: " + err.Error())
+		return errors.New("create tables err: " + err.Error())
 	}
-	_, err = db.Exec(createMrs)
-	if err != nil {
-		return errors.New("create table 'mrs' err: " + err.Error())
-	}
-	_, err = db.Exec(createReviews)
-	if err != nil {
-		return errors.New("create table 'reviews' err: " + err.Error())
-	}
-
 	return
 }
 
-func (c *Client) SaveUser(user utils.User) (err error) {
+func (c *Client) SaveUser(user models.User) (err error) {
 	q := `INSERT INTO users (telegram_id, gitlab_id, jira_id, is_active, role)
 		  VALUES (?, ?, ?, ?, ?)`
 	res, err := c.Db.Exec(q, user.TelegramID, user.GitlabID, user.JiraID, user.IsActive, user.Role)
@@ -92,6 +79,51 @@ func (c *Client) SaveUser(user utils.User) (err error) {
 	}
 	if rows != 1 {
 		return errors.New("create new user error: no affected rows")
+	}
+	return
+}
+
+func(c *Client) ChangeIsActiveUser(telegramID string, isActive bool) (err error) {
+	q := `UPDATE users SET is_active = ? WHERE telegram_id = ?`
+	res, err := c.Db.Exec(q, isActive, telegramID)
+	if err != nil {
+		return errors.New(fmt.Sprint("change is active user error: %v", err))
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows != 1 {
+		return errors.New("change is active user error: no affected rows")
+	}
+	return
+}
+
+func (c *Client) GetUsersWithPayload(telegramID string) (ups models.UsersPayload, err error) {
+	q := `SELECT id, 
+       			 telegram_id, 
+       			 role, 
+                 (SELECT count(*) 
+                  FROM reviews r 
+                  WHERE r.user_id = id
+                    AND r.is_approved = FALSE) AS payload
+          FROM users
+		  WHERE telegram_id != ?
+			AND is_active = TRUE
+		  ORDER BY role, payload;`
+
+	rows, err := c.Db.Query(q, telegramID)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	var up models.UserPayload
+	for rows.Next() {
+		if err = rows.Scan(&up.ID, &up.TelegramID, &up.Role, &up.Payload); err != nil {
+			return
+		}
+		ups = append(ups, up)
 	}
 	return
 }

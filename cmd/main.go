@@ -14,31 +14,30 @@ import (
 func main() {
 	var (
 		appCtx app.App
-		cfg    app.Config
 		err    error
 	)
 
 	if len(os.Args) == 2 {
-		cfg, err = readConfig(os.Args[1])
+		appCtx.Config, err = readConfig(os.Args[1])
 	} else {
-		cfg, err = readConfig("../conf/test_conf.json")
+		appCtx.Config, err = readConfig("../conf/test_conf.json")
 	}
 	if err != nil {
 		panic(err)
 	}
 
-	appCtx.Telegram, err = telegram.RunBot(cfg.Tg)
+	appCtx.Telegram, err = telegram.RunBot(appCtx.Config.Tg)
 	if err != nil {
 		panic(err)
 	}
 
-	appCtx.DB, err = database.RunDB(cfg.Db)
+	appCtx.DB, err = database.RunDB(appCtx.Config.Db)
 	if err != nil {
 		panic(err)
 	}
 	defer appCtx.DB.Db.Close()
 
-	err = appCtx.Serve(cfg)
+	err = appCtx.Serve()
 
 	fmt.Println("gogogogo" + err.Error())
 

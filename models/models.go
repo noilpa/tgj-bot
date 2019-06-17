@@ -1,18 +1,24 @@
 package models
 
+import (
+	ce "tgj-bot/customErrors"
+)
 
 type UserBrief struct {
-	ID int
-	TelegramID string
-	Role       Role
+	ID               int
+	TelegramID       string
+	TelegramUsername string
+	Role             Role
 }
 
 type User struct {
 	UserBrief
-	GitlabID   string
-	JiraID     string
-	IsActive   bool
+	GitlabID string
+	JiraID   string
+	IsActive bool
 }
+
+type Users []User
 
 type UserPayload struct {
 	UserBrief
@@ -21,8 +27,22 @@ type UserPayload struct {
 
 type UsersPayload []UserPayload
 
-func (ups *UsersPayload) GetN(num int, role Role) UsersPayload {
-
+func (ups UsersPayload) GetN(num int, role Role) (res UsersPayload, err error) {
+	if len(ups) == 0 {
+		return res, ce.ErrUsersForReviewNotFound
+	}
+	// users already are sorted from db
+	for _, up := range ups {
+		if num == 0 {
+			break
+		}
+		if up.Role != role {
+			continue
+		}
+		res = append(res, up)
+		num--
+	}
+	return
 }
 
 type Role string
@@ -41,4 +61,17 @@ func IsValidRole(r Role) bool {
 		}
 	}
 	return false
+}
+
+type MR struct {
+	ID int
+	URL string
+}
+
+type Review struct {
+	MrID int
+	UserID int
+	IsApproved bool
+	IsCommented bool
+	UpdatedAt int64
 }

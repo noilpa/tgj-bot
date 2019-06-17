@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"tgj-bot/app"
@@ -23,24 +24,19 @@ func main() {
 		appCtx.Config, err = readConfig("../conf/test_conf.json")
 	}
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
-
 	appCtx.Telegram, err = telegram.RunBot(appCtx.Config.Tg)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
-
 	appCtx.DB, err = database.RunDB(appCtx.Config.Db)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
-	defer appCtx.DB.Db.Close()
-
+	defer appCtx.DB.Close()
 	err = appCtx.Serve()
-
-	fmt.Println("gogogogo" + err.Error())
-
+	log.Print("I'll be back...")
 }
 
 func readConfig(path string) (cfg app.Config, err error) {

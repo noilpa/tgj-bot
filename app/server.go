@@ -4,16 +4,17 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"regexp"
+	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
+	ce "tgj-bot/customErrors"
 	db "tgj-bot/externalService/database"
 	gl "tgj-bot/externalService/gitlab"
 	tg "tgj-bot/externalService/telegram"
 	"tgj-bot/models"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
@@ -46,11 +47,17 @@ const (
 	mrCmd       = command("mr")
 )
 
-const urlPattern = `#([a-z]([a-z]|\d|\+|-|\.)*):(\/\/(((([a-z]|\d|-|\.|_|~|[\x00A0-\xD7FF\xF900-\xFDCF\xFDF0-\xFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:)*@)?((\[(|(v[\da-f]{1,}\.(([a-z]|\d|-|\.|_|~)|[!\$&'\(\)\*\+,;=]|:)+))\])|((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5]))|(([a-z]|\d|-|\.|_|~|[\x00A0-\xD7FF\xF900-\xFDCF\xFDF0-\xFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=])*)(:\d*)?)(\/(([a-z]|\d|-|\.|_|~|[\x00A0-\xD7FF\xF900-\xFDCF\xFDF0-\xFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*|(\/((([a-z]|\d|-|\.|_|~|[\x00A0-\xD7FF\xF900-\xFDCF\xFDF0-\xFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)+(\/(([a-z]|\d|-|\.|_|~|[\x00A0-\xD7FF\xF900-\xFDCF\xFDF0-\xFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*)?)|((([a-z]|\d|-|\.|_|~|[\x00A0-\xD7FF\xF900-\xFDCF\xFDF0-\xFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)+(\/(([a-z]|\d|-|\.|_|~|[\x00A0-\xD7FF\xF900-\xFDCF\xFDF0-\xFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*)|((([a-z]|\d|-|\.|_|~|[\x00A0-\xD7FF\xF900-\xFDCF\xFDF0-\xFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)){0})(\?((([a-z]|\d|-|\.|_|~|[\x00A0-\xD7FF\xF900-\xFDCF\xFDF0-\xFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|[\xE000-\xF8FF]|\/|\?)*)?(\#((([a-z]|\d|-|\.|_|~|[\x00A0-\xD7FF\xF900-\xFDCF\xFDF0-\xFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|\/|\?)*)?#iS`
+const success  = "Success!"
 
 func (a *App) Serve() (err error) {
 	for update := range a.Telegram.Updates {
-		if update.Message == nil { // ignore any non-Message Updates
+		if update.Message == nil {
+			continue
+		}
+		if update.Message.Chat != nil {
+
+		}
+		if update.Message.Chat.ID != a.Config.Tg.ChatID {
 			continue
 		}
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
@@ -61,17 +68,25 @@ func (a *App) Serve() (err error) {
 			case registerCmd:
 				msg.Text, err = a.registerHandler(update)
 			case inactiveCmd:
-				msg.Text, err = a.isActiveHandler(update, false)
+				if err = a.userValid(update.Message.From.ID); err == nil {
+					msg.Text, err = a.isActiveHandler(update, false)
+				}
 			case activeCmd:
-				msg.Text, err = a.isActiveHandler(update, true)
+				if err = a.userValid(update.Message.From.ID); err == nil {
+					msg.Text, err = a.isActiveHandler(update, true)
+				}
 			case mrCmd:
-
+				if err = a.userValid(update.Message.From.ID); err == nil {
+					msg.Text, err = a.mrHandler(update)
+				}
 			default:
 				msg.Text = helpHandler()
 			}
 
 			if err != nil {
+				log.Print(err)
 				msg.Text = err.Error()
+
 			}
 
 			if _, err := a.Telegram.Bot.Send(msg); err != nil {
@@ -80,6 +95,21 @@ func (a *App) Serve() (err error) {
 		}
 	}
 	return
+}
+
+func (a *App) userValid(tgID int) (err error) {
+	users, err := a.DB.GetUsers()
+	if err != nil {
+		return ce.Wrap(err, "load user from db failed")
+	}
+
+	id := strconv.Itoa(tgID)
+	for _, u := range users {
+		if u.TelegramID == id {
+			return
+		}
+	}
+	return ce.ErrUserNorRegistered
 }
 
 func helpHandler() string {
@@ -97,12 +127,13 @@ func (a *App) registerHandler(update tgbotapi.Update) (msg string, err error) {
 
 	user := models.User{
 		UserBrief: models.UserBrief{
-			TelegramID: strconv.Itoa(update.Message.From.ID),
-			Role:       models.Developer,
+			TelegramID:       strconv.Itoa(update.Message.From.ID),
+			TelegramUsername: update.Message.From.UserName,
+			Role:             models.Developer,
 		},
-		GitlabID:  args[0],
-		JiraID:    "",
-		IsActive:  true,
+		GitlabID: args[0],
+		JiraID:   "",
+		IsActive: true,
 	}
 	if len(args) == 2 {
 		role := models.Role(args[1])
@@ -117,28 +148,39 @@ func (a *App) registerHandler(update tgbotapi.Update) (msg string, err error) {
 		return msg, err
 	}
 
-	return "Successfully created!", nil
+	return success, nil
 
 }
 
 func (a *App) isActiveHandler(update tgbotapi.Update, isActive bool) (msg string, err error) {
 	argsStr := update.Message.CommandArguments()
-	var telegramID string
+	var telegramUsername string
 	if argsStr == "" {
-		telegramID = strconv.Itoa(update.Message.From.ID)
+		telegramUsername = update.Message.From.UserName
 	} else {
-		spew.Dump(update)
 		args := strings.Split(strings.ToLower(argsStr), " ")
-		// что хранится в @username или как выглядит json
-		// /activate @username
-		telegramID = args[0]
+		telegramUsername = args[0]
 	}
 
-	if err = a.DB.ChangeIsActiveUser(telegramID, isActive); err != nil {
+	u, err := a.DB.GetUserByTgUsername(telegramUsername)
+	if err != nil {
+		return
+	}
+	if u.IsActive == isActive {
+		// nothing to update
+		return success, nil
+	}
+
+	if err = a.DB.ChangeIsActiveUser(telegramUsername, isActive); err != nil {
 		return msg, err
 	}
 
-	return "Success!", nil
+	// перераспределить МРы деактивированного пользователя
+	if !isActive {
+		//reallocateMRs()
+	}
+
+	return success, nil
 }
 
 func (a *App) mrHandler(update tgbotapi.Update) (msg string, err error) {
@@ -149,14 +191,11 @@ func (a *App) mrHandler(update tgbotapi.Update) (msg string, err error) {
 	}
 	args := strings.Split(strings.ToLower(argsStr), " ")
 
-	// работает ли проверка url !?
-	isUrl, err := regexp.MatchString(urlPattern, args[0])
+	// можно забирать ИД МРа для gitlab
+	mrUrl := args[0]
+	_, err = url.Parse(mrUrl)
 	if err != nil {
-		log.Printf("compiling regexp for url failed: %v", err)
-		return msg, errors.New("compiling regexp for url failed")
-	}
-	if !isUrl {
-		return msg, errors.New("command parameter is not url")
+		return
 	}
 
 	users, err := a.DB.GetUsersWithPayload(strconv.Itoa(update.Message.From.ID))
@@ -165,19 +204,48 @@ func (a *App) mrHandler(update tgbotapi.Update) (msg string, err error) {
 		return msg, errors.New("getting users failed")
 	}
 
-	reviewParty := getParticipants(users, a.Config.Rp)
+	// если комманда не набирается, но не нулевая то все ОК
+	reviewParty, err := getParticipants(users, a.Config.Rp)
+	if err != nil {
+		return
+	}
+	if len(reviewParty) == 0 {
+		return "", ce.ErrUsersForReviewNotFound
+	}
 
 	// сохранить в таблицу mrs и reviews
-	// получить имена для каждого пользователя
-	// сформировать ответное сообщение
+	mr, err := a.DB.SaveMR(mrUrl)
+	if err != nil {
+		return
+	}
+	review := models.Review{
+		MrID:       mr.ID,
+		UpdatedAt:  time.Now().Unix(),
+	}
+
+	msg = fmt.Sprintf("Time to review %v !!! ", mr.URL)
+	for _, r := range reviewParty {
+		review.UserID = r.ID
+		if err = a.DB.SaveReview(review); err != nil {
+			return
+		}
+		msg += msg + fmt.Sprintf("@%v ", r.TelegramUsername)
+	}
+	msg += msg + "your turn"
 
 	return
 }
 
-func getParticipants(users models.UsersPayload, cfg ReviewParty) (rp models.UsersPayload) {
-	devs := users.GetN(cfg.DevNum, models.Developer)
-	leads := users.GetN(cfg.LeadNum, models.Lead)
-
-	return append(devs, leads...)
+func getParticipants(users models.UsersPayload, cfg ReviewParty) (rp models.UsersPayload, err error) {
+	devs, err := users.GetN(cfg.DevNum, models.Developer)
+	if err != nil {
+		return nil, err
+	}
+	leads, err := users.GetN(cfg.LeadNum, models.Lead)
+	if err != nil {
+		return nil, err
+	}
+	return append(devs, leads...), nil
 }
 
+// todo add notifications about MRs

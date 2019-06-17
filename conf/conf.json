@@ -2,7 +2,6 @@
   "telegram": {
     "token": "xxxxxx-xxxxx-xxxxxx",
     "update_timeout": 60,
-    "update_offset": 0,
     "proxy": ""
   },
   "gitlab": {

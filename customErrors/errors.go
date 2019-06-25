@@ -11,6 +11,8 @@ var (
 	ErrCreateUser             = errors.New("user not created")
 	ErrCreateReview           = errors.New("review not created")
 	ErrChangeUserActivity     = errors.New("change is active user error")
+	ErrChangeReviewApprove    = errors.New("change is approved review error")
+	ErrInvalidVariableType    = errors.New("invalid variable type")
 )
 
 func Wrap(err error, msg string) error {

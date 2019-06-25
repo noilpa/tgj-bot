@@ -64,14 +64,16 @@ func IsValidRole(r Role) bool {
 }
 
 type MR struct {
-	ID int
-	URL string
+	ID       int
+	URL      string
+	AuthorID int
+	IsClosed bool
 }
 
 type Review struct {
-	MrID int
-	UserID int
-	IsApproved bool
+	MrID        int
+	UserID      int
+	IsApproved  bool
 	IsCommented bool
-	UpdatedAt int64
+	UpdatedAt   int64
 }

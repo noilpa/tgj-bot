@@ -7,39 +7,46 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"tgj-bot/app"
+
+	a "tgj-bot/app"
 	"tgj-bot/externalService/database"
+	gitlab_ "tgj-bot/externalService/gitlab"
 	"tgj-bot/externalService/telegram"
 )
 
 func main() {
 	var (
-		appCtx app.App
-		err    error
+		app a.App
+		err error
 	)
 
 	if len(os.Args) == 2 {
-		appCtx.Config, err = readConfig(os.Args[1])
+		app.Config, err = readConfig(os.Args[1])
 	} else {
-		appCtx.Config, err = readConfig("../conf/test_conf.json")
+		app.Config, err = readConfig("../conf/test_conf.json")
 	}
 	if err != nil {
 		log.Panic(err)
 	}
-	appCtx.Telegram, err = telegram.RunBot(appCtx.Config.Tg)
+
+	app.Telegram, err = telegram.RunBot(app.Config.Tg)
 	if err != nil {
 		log.Panic(err)
 	}
-	appCtx.DB, err = database.RunDB(appCtx.Config.Db)
+
+	app.DB, err = database.RunDB(app.Config.Db)
 	if err != nil {
 		log.Panic(err)
 	}
-	defer appCtx.DB.Close()
-	err = appCtx.Serve()
+	defer app.DB.Close()
+
+	app.Gitlab, err = gitlab_.RunGitlab(app.Config.Gl)
+
+	err = app.Serve()
 	log.Print("I'll be back...")
 }
 
-func readConfig(path string) (cfg app.Config, err error) {
+func readConfig(path string) (cfg a.Config, err error) {
 	path, err = filepath.Abs(path)
 	fmt.Println(path)
 	if err != nil {

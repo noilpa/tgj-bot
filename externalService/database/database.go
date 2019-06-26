@@ -115,13 +115,30 @@ func (c *Client) UpdateReviewApprove(r models.Review) error {
 	if err != nil {
 		return ce.Wrap(ce.ErrChangeReviewApprove, err.Error())
 	}
-	rows, err := res.RowsAffected()
+	_, err = res.RowsAffected()
 	if err != nil {
 		return err
 	}
-	if rows != 1 {
-		return ce.Wrap(ce.ErrChangeReviewApprove, "no affected rows")
+
+	return nil
+}
+
+func (c *Client) UpdateReviewComment(r models.Review) error {
+	q := `UPDATE reviews 
+			SET is_commented = ?,
+				updated_at = ?
+		  WHERE user_id = ? 
+  			AND mr_id = ?`
+	res, err := c.db.Exec(q, r.IsCommented, r.UpdatedAt, r.UserID, r.MrID)
+	if err != nil {
+		return ce.Wrap(ce.ErrChangeReviewComment, err.Error())
 	}
+
+	_, err = res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -141,4 +158,22 @@ func (c *Client) GetOpenedMRs() (mrs []models.MR, err error) {
 		mrs = append(mrs, mr)
 	}
 	return
+}
+
+func (c *Client) CloseMRs() error {
+	q := `UPDATE mrs SET is_closed=True
+		  WHERE  id NOT IN (SELECT mr_id 
+						    FROM reviews 
+							WHERE is_approved= FALSE);`
+	res, err := c.db.Exec(q)
+	if err != nil {
+		return ce.Wrap(ce.ErrCloseMRs, err.Error())
+	}
+
+	_, err = res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

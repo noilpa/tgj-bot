@@ -102,6 +102,10 @@ func (a *App) mrHandler(update tgbotapi.Update) (msg string, err error) {
 		return
 	}
 
+	if err = a.updateReviews(); err != nil {
+		return
+	}
+
 	users, err := a.DB.GetUsersWithPayload(strconv.Itoa(update.Message.From.ID))
 	if err != nil {
 		log.Printf("getting users failed: %v", err)
@@ -160,12 +164,13 @@ func getParticipants(users models.UsersPayload, cfg ReviewParty) (rp models.User
 	return append(devs, leads...), nil
 }
 
-func (a *App) updateReviews(timeout int64) error {
+func (a *App) updateReviews() error {
 	//
-	// пойти по всем МРам
+	// пойти по всем открытым МРам
 	//    зайти в мр
 	//    получить лайки и коменты
 	//    обновить значения в таблице reviews
+	// закрыть МРы у которых все ревью approved
 	//
 	mrs, err := a.DB.GetOpenedMRs()
 	if err != nil {
@@ -179,6 +184,11 @@ func (a *App) updateReviews(timeout int64) error {
 			return err
 		}
 	}
+
+	if err = a.DB.CloseMRs(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -215,7 +225,15 @@ func (a *App) updateMrComments(mID int) error {
 		if err != nil {
 			return err
 		}
-		// UpdateReviewComment()
+		err = a.DB.UpdateReviewComment(models.Review{
+			MrID:        mID,
+			UserID:      u.ID,
+			IsCommented: true,
+			UpdatedAt:   time.Now().Unix(),
+		})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

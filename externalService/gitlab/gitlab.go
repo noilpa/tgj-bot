@@ -45,10 +45,10 @@ func (c *Client) CheckMrLikes(mrID int) (users []int, err error) {
 	if err != nil {
 		return
 	}
-	ids := make(map[int]bool)
+	ids := make(map[int]struct{})
 	for _, e := range emojies {
-		if _, value := ids[e.User.ID]; !value {
-			ids[e.User.ID] = true
+		if _, found := ids[e.User.ID]; !found {
+			ids[e.User.ID] = struct{}{}
 			users = append(users, e.User.ID)
 		}
 	}

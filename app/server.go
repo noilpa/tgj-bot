@@ -2,14 +2,11 @@ package app
 
 import (
 	"log"
-	"strconv"
 
 	ce "tgj-bot/customErrors"
 	db "tgj-bot/externalService/database"
 	gl "tgj-bot/externalService/gitlab"
 	tg "tgj-bot/externalService/telegram"
-
-	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 type Config struct {
@@ -41,7 +38,7 @@ const (
 	mrCmd       = command("mr")
 )
 
-const success  = "Success!"
+const success = "Success!"
 
 func (a *App) Serve() (err error) {
 	for update := range a.Telegram.Updates {
@@ -49,61 +46,46 @@ func (a *App) Serve() (err error) {
 			continue
 		}
 		if update.Message.Chat != nil {
-
+			if update.Message.Chat.ID != a.Config.Tg.ChatID {
+				continue
+			}
 		}
-		if update.Message.Chat.ID != a.Config.Tg.ChatID {
-			continue
-		}
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+		tgUsername := update.Message.From.UserName
 		if update.Message.IsCommand() {
 			switch command(update.Message.Command()) {
 			case helpCmd:
-				msg.Text = a.helpHandler()
+				err = a.helpHandler()
 			case registerCmd:
-				msg.Text, err = a.registerHandler(update)
+				err = a.registerHandler(update)
 			case inactiveCmd:
-				if err = a.isUserRegister(update.Message.From.ID); err == nil {
-					msg.Text, err = a.isActiveHandler(update, false)
+				if err = a.isUserRegister(tgUsername); err == nil {
+					err = a.isActiveHandler(update, false)
 				}
 			case activeCmd:
-				if err = a.isUserRegister(update.Message.From.ID); err == nil {
-					msg.Text, err = a.isActiveHandler(update, true)
+				if err = a.isUserRegister(tgUsername); err == nil {
+					err = a.isActiveHandler(update, true)
 				}
 			case mrCmd:
-				if err = a.isUserRegister(update.Message.From.ID); err == nil {
-					msg.Text, err = a.mrHandler(update)
+				if err = a.isUserRegister(tgUsername); err == nil {
+					err = a.mrHandler(update)
 				}
 			default:
-				msg.Text = a.helpHandler()
+				err = a.helpHandler()
 			}
 
 			if err != nil {
 				log.Print(err)
-				msg.Text = err.Error()
-
-			}
-
-			if _, err := a.Telegram.Bot.Send(msg); err != nil {
-				log.Printf("Couldn't send message '%s': %v", msg.Text, err)
+				// no need to handle err, we are log all that we can
+				a.sendTgMessage(err.Error())
 			}
 		}
 	}
 	return
 }
 
-func (a *App) isUserRegister(tgID int) (err error) {
-	users, err := a.DB.GetUsers()
-	if err != nil {
-		return ce.Wrap(err, "load user from db failed")
+func (a *App) isUserRegister(tgUsername string) (err error) {
+	if _, err = a.DB.GetUserByTgUsername(tgUsername); err != nil {
+		err = ce.ErrUserNorRegistered
 	}
-
-	id := strconv.Itoa(tgID)
-	for _, u := range users {
-		if u.TelegramID == id {
-			return
-		}
-	}
-	return ce.ErrUserNorRegistered
+	return
 }
-
-// todo add notifications about MRs

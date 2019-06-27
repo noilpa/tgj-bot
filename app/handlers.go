@@ -16,12 +16,12 @@ import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-func (a *App) helpHandler() string {
-	return fmt.Sprint("/register gitlab_id [role=dev]\n" + "/mr merge_request_url\n" +
-		"/inactive [@username]\n" + "/active [@username]\n" + "/mr url")
+func (a *App) helpHandler() error {
+	return a.sendTgMessage(fmt.Sprint("/register gitlab_id [role=dev]\n" + "/mr merge_request_url\n" +
+		"/inactive [username]\n" + "/active [username]\n" + "/mr url"))
 }
 
-func (a *App) registerHandler(update tgbotapi.Update) (msg string, err error) {
+func (a *App) registerHandler(update tgbotapi.Update) (err error) {
 	argsStr := update.Message.CommandArguments()
 	if argsStr == "" {
 		err = errors.New("command require two arguments. For more information use /help")
@@ -44,19 +44,19 @@ func (a *App) registerHandler(update tgbotapi.Update) (msg string, err error) {
 		if models.IsValidRole(role) {
 			user.Role = role
 		} else {
-			return msg, errors.New(fmt.Sprintf("second parameter (role) must be equal one of %", models.ValidRoles))
+			return errors.New(fmt.Sprintf("second parameter (role) must be equal one of %", models.ValidRoles))
 		}
 	}
 
 	if err = a.DB.SaveUser(user); err != nil {
-		return msg, err
+		return err
 	}
 
-	return success, nil
+	return a.sendTgMessage(success)
 
 }
 
-func (a *App) isActiveHandler(update tgbotapi.Update, isActive bool) (msg string, err error) {
+func (a *App) isActiveHandler(update tgbotapi.Update, isActive bool) (err error) {
 	argsStr := update.Message.CommandArguments()
 	var telegramUsername string
 	if argsStr == "" {
@@ -72,22 +72,24 @@ func (a *App) isActiveHandler(update tgbotapi.Update, isActive bool) (msg string
 	}
 	if u.IsActive == isActive {
 		// nothing to update
-		return success, nil
+		return a.sendTgMessage(success)
 	}
 
 	if err = a.DB.ChangeIsActiveUser(telegramUsername, isActive); err != nil {
-		return msg, err
+		return
 	}
 
 	// перераспределить МРы деактивированного пользователя
 	if !isActive {
-		//reallocateMRs()
+		if err = a.reallocateUserMRs(u); err != nil {
+			return
+		}
 	}
 
-	return success, nil
+	return a.sendTgMessage(success)
 }
 
-func (a *App) mrHandler(update tgbotapi.Update) (msg string, err error) {
+func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 	argsStr := update.Message.CommandArguments()
 	if argsStr == "" {
 		err = errors.New("command require one argument. For more information use /help")
@@ -109,7 +111,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (msg string, err error) {
 	users, err := a.DB.GetUsersWithPayload(strconv.Itoa(update.Message.From.ID))
 	if err != nil {
 		log.Printf("getting users failed: %v", err)
-		return msg, errors.New("getting users failed")
+		return errors.New("getting users failed")
 	}
 
 	// если комманда не набирается, но не нулевая то все ОК
@@ -118,7 +120,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (msg string, err error) {
 		return
 	}
 	if len(reviewParty) == 0 {
-		return "", ce.ErrUsersForReviewNotFound
+		return ce.ErrUsersForReviewNotFound
 	}
 
 	// сохранить в таблицу mrs и reviews
@@ -139,7 +141,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (msg string, err error) {
 		UpdatedAt: time.Now().Unix(),
 	}
 
-	msg = fmt.Sprintf("Merge request %v !!! ", mr.URL)
+	msg := fmt.Sprintf("Merge request %v !!! ", mr.URL)
 	for _, r := range reviewParty {
 		review.UserID = r.ID
 		if err = a.DB.SaveReview(review); err != nil {
@@ -149,7 +151,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (msg string, err error) {
 	}
 	msg += "review please"
 
-	return
+	return a.sendTgMessage(msg)
 }
 
 func getParticipants(users models.UsersPayload, cfg ReviewParty) (rp models.UsersPayload, err error) {
@@ -236,4 +238,35 @@ func (a *App) updateMrComments(mID int) error {
 		}
 	}
 	return nil
+}
+
+func (a *App) reallocateUserMRs(u models.User) (err error) {
+	// получить список незаапрувленных МРов пользователя
+	//     получить список пользователей для МРа
+	//     вычислить список пользователей на кого можно перевести ревью (не создатель МР,
+	//                                                                   не тот кто ушел инактив,
+	//                                                                   не тот кто уже на этом МРе,
+	//                                                                   такая же роль)
+	//     выбрать пользователя с минимальным payload
+	//     и так далее по логике
+
+	mrsID, err := a.DB.GetUserReviewMRs(u.ID)
+	if err != nil {
+		return err
+	}
+	for _, mrID := range mrsID {
+		user, err := a.DB.GetUserForReallocateMR(u.ID, mrID, u.Role)
+		if err != nil {
+			return err
+		}
+		if err = a.DB.SaveReview(models.Review{
+			MrID:      mrID,
+			UserID:    user.ID,
+			UpdatedAt: time.Now().Unix(),
+		}); err != nil {
+			return
+		}
+		a.sendTgMessage(fmt.Sprintf("New review: %v , @s", ))
+	}
+	return
 }

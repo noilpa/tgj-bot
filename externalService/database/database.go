@@ -5,9 +5,6 @@ import (
 	"errors"
 	"os"
 
-	ce "tgj-bot/customErrors"
-	"tgj-bot/models"
-
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -73,107 +70,4 @@ func initSchema(db *sql.DB) (err error) {
 
 func (c *Client) Close() {
 	c.db.Close()
-}
-
-func (c *Client) SaveMR(mr models.MR) (models.MR, error) {
-	q := `INSERT INTO mrs (url, author_id) VALUES (?, ?);
-		  SELECT id FROM mrs WHERE url = ?`
-	if err := c.db.QueryRow(q, mr.URL, mr.AuthorID).Scan(&mr.ID); err != nil {
-		return models.MR{}, err
-	}
-	return mr, nil
-}
-
-func (c *Client) SaveReview(r models.Review) (err error) {
-	q := `INSERT INTO reviews (mr_id, user_id, updated_at) VALUES (?, ?, ?)`
-	res, err := c.db.Exec(q, r.MrID, r.UserID, r.UpdatedAt)
-	if err != nil {
-		return ce.ErrCreateReview
-	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if rows != 1 {
-		return ce.Wrap(ce.ErrCreateReview, "no affected rows")
-	}
-	return
-}
-
-//func (c *Client) GetReviewsByMrID(id int) ([]models.Review, error) {
-//	q := `SELECT FROM reviews WHERE mr_id = ?`
-//	// нужно ли возвращать is_approved = true?
-//}
-
-func (c *Client) UpdateReviewApprove(r models.Review) error {
-	q := `UPDATE reviews 
-			SET is_approved = ?,
-				updated_at = ?
-		  WHERE user_id = ? 
-  			AND mr_id = ?`
-	res, err := c.db.Exec(q, r.IsApproved, r.UpdatedAt, r.UserID, r.MrID)
-	if err != nil {
-		return ce.Wrap(ce.ErrChangeReviewApprove, err.Error())
-	}
-	_, err = res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *Client) UpdateReviewComment(r models.Review) error {
-	q := `UPDATE reviews 
-			SET is_commented = ?,
-				updated_at = ?
-		  WHERE user_id = ? 
-  			AND mr_id = ?`
-	res, err := c.db.Exec(q, r.IsCommented, r.UpdatedAt, r.UserID, r.MrID)
-	if err != nil {
-		return ce.Wrap(ce.ErrChangeReviewComment, err.Error())
-	}
-
-	_, err = res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *Client) GetOpenedMRs() (mrs []models.MR, err error) {
-	q := `SELECT id, url, author_id FROM mrs WHERE is_closed = FALSE`
-	rows, err := c.db.Query(q)
-	if err != nil {
-		return
-	}
-	defer rows.Close()
-
-	var mr models.MR
-	for rows.Next() {
-		if err = rows.Scan(&mr.ID, &mr.URL, &mr.AuthorID); err != nil {
-			return
-		}
-		mrs = append(mrs, mr)
-	}
-	return
-}
-
-func (c *Client) CloseMRs() error {
-	q := `UPDATE mrs SET is_closed=True
-		  WHERE  id NOT IN (SELECT mr_id 
-						    FROM reviews 
-							WHERE is_approved= FALSE);`
-	res, err := c.db.Exec(q)
-	if err != nil {
-		return ce.Wrap(ce.ErrCloseMRs, err.Error())
-	}
-
-	_, err = res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

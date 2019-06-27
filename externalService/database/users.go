@@ -102,9 +102,7 @@ func (c *Client) GetUserByTgUsername(id string) (u models.User, err error) {
 	return
 }
 
-
 func (c *Client) GetUserByGitlabID(id interface{}) (u models.User, err error) {
-
 	switch id.(type) {
 	case int:
 		id = strconv.Itoa(id.(int))
@@ -122,5 +120,66 @@ func (c *Client) GetUserByGitlabID(id interface{}) (u models.User, err error) {
 	if err != nil {
 		return
 	}
+	return
+}
+
+func (c *Client) GetUsersByMrID(id int) (us []models.UserBrief, err error) {
+	q := `SELECT id, telegram_id, telegram_username, role 
+		  FROM users 
+		  WHERE is_active = TRUE 
+		    AND id IN (SELECT user_id 
+		    		  FROM reviews 
+		    		  WHERE mr_id = ?)`
+	rows, err := c.db.Query(q, id)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	var u models.UserBrief
+	for rows.Next() {
+		if err = rows.Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.Role); err != nil {
+			return
+		}
+		us = append(us, u)
+	}
+	return
+}
+
+func (c *Client) GetUserForReallocateMR(uID, mID int, role models.Role) (ups models.UserPayload, err error) {
+
+	q := `SELECT id, 
+       			 telegram_id,
+       			 telegram_username,
+       			 role, 
+                 (SELECT count(*) 
+                  FROM reviews r 
+                  WHERE r.user_id = id
+                    AND r.is_approved = FALSE) AS payload
+          FROM users
+          WHERE is_active = TRUE 
+            AND role = ?
+            AND id != ?
+            AND id NOT IN (SELECT user_id 
+            			   FROM reviews 
+            			   WHERE mr_id = ? 
+            			     AND user_id != ?)
+		  ORDER BY payload
+		  LIMIT 1;`
+
+	rows, err := c.db.Query(q, role, uID, mID, uID)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	var up models.UserPayload
+	for rows.Next() {
+		if err = rows.Scan(&up.ID, &up.TelegramID, &up.TelegramUsername, &up.Role, &up.Payload); err != nil {
+			return
+		}
+		ups = append(ups, up)
+	}
+
 	return
 }

@@ -97,7 +97,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 	}
 	args := strings.Split(strings.ToLower(argsStr), " ")
 
-	// можно забирать ИД МРа для gitlab
+	// можно забирать url МРа для gitlab
 	mrUrl := args[0]
 	_, err = url.Parse(mrUrl)
 	if err != nil {
@@ -264,9 +264,13 @@ func (a *App) reallocateUserMRs(u models.User) (err error) {
 			UserID:    user.ID,
 			UpdatedAt: time.Now().Unix(),
 		}); err != nil {
-			return
+			return err
 		}
-		a.sendTgMessage(fmt.Sprintf("New review: %v , @s", ))
+		mr, err := a.DB.GetMrByID(mrID)
+		if err != nil {
+			return err
+		}
+		return a.sendTgMessage(fmt.Sprintf("New review: %v , @%s", mr.URL, u.TelegramUsername))
 	}
-	return
+	return nil
 }

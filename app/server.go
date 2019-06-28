@@ -74,9 +74,9 @@ func (a *App) Serve() (err error) {
 			}
 
 			if err != nil {
+				// mb duplicate database logging
 				log.Print(err)
-				// no need to handle err, we are log all that we can
-				a.sendTgMessage(err.Error())
+				log.Println(a.sendTgMessage(err.Error()))
 			}
 		}
 	}

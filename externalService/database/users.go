@@ -11,32 +11,18 @@ import (
 func (c *Client) SaveUser(user models.User) (err error) {
 	q := `INSERT INTO users (telegram_id, telegram_username, gitlab_id, jira_id, is_active, role)
 		  VALUES (?, ?, ?, ?, ?, ?)`
-	res, err := c.db.Exec(q, user.TelegramID, user.TelegramUsername, user.GitlabID, user.JiraID, user.IsActive, user.Role)
+	_, err = c.db.Exec(q, user.TelegramID, user.TelegramUsername, user.GitlabID, user.JiraID, user.IsActive, user.Role)
 	if err != nil {
-		return ce.ErrCreateUser
-	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if rows != 1 {
-		return ce.Wrap(ce.ErrCreateUser, "no affected rows")
+		err = ce.WrapWithLog(err, ce.ErrCreateUser.Error())
 	}
 	return
 }
 
 func (c *Client) ChangeIsActiveUser(telegramUsername string, isActive bool) (err error) {
 	q := `UPDATE users SET is_active = ? WHERE telegram_username = ?`
-	res, err := c.db.Exec(q, isActive, telegramUsername)
+	_, err = c.db.Exec(q, isActive, telegramUsername)
 	if err != nil {
-		return ce.Wrap(ce.ErrChangeUserActivity, err.Error())
-	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if rows != 1 {
-		return ce.Wrap(ce.ErrChangeUserActivity, "no affected rows")
+		err = ce.WrapWithLog(err, ce.ErrChangeUserActivity.Error())
 	}
 	return
 }
@@ -57,6 +43,7 @@ func (c *Client) GetUsersWithPayload(telegramID string) (ups models.UsersPayload
 
 	rows, err := c.db.Query(q, telegramID)
 	if err != nil {
+		err = ce.WrapWithLog(err, "get users with payload")
 		return
 	}
 	defer rows.Close()
@@ -64,6 +51,7 @@ func (c *Client) GetUsersWithPayload(telegramID string) (ups models.UsersPayload
 	var up models.UserPayload
 	for rows.Next() {
 		if err = rows.Scan(&up.ID, &up.TelegramID, &up.TelegramUsername, &up.Role, &up.Payload); err != nil {
+			err = ce.WrapWithLog(err, "get users with payload scan")
 			return
 		}
 		ups = append(ups, up)
@@ -77,6 +65,7 @@ func (c *Client) GetUsers() (users models.Users, err error) {
 
 	rows, err := c.db.Query(q)
 	if err != nil {
+		err = ce.WrapWithLog(err, "get users")
 		return
 	}
 	defer rows.Close()
@@ -84,6 +73,7 @@ func (c *Client) GetUsers() (users models.Users, err error) {
 	var u models.User
 	for rows.Next() {
 		if err = rows.Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.GitlabID, &u.JiraID, &u.IsActive, &u.Role); err != nil {
+			err = ce.WrapWithLog(err, "get users scan")
 			return
 		}
 		users = append(users, u)
@@ -97,6 +87,7 @@ func (c *Client) GetUserByTgUsername(id string) (u models.User, err error) {
           WHERE telegram_username = ?`
 	err = c.db.QueryRow(q, id).Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.GitlabID, &u.JiraID, &u.IsActive, &u.Role)
 	if err != nil {
+		err = ce.WrapWithLog(err, "get user by telegram username")
 		return
 	}
 	return
@@ -109,7 +100,7 @@ func (c *Client) GetUserByGitlabID(id interface{}) (u models.User, err error) {
 	case string:
 		id = id.(string)
 	default:
-		err = ce.Wrap(ce.ErrInvalidVariableType, fmt.Sprintf("%T", id))
+		err = ce.WrapWithLog(ce.ErrInvalidVariableType, fmt.Sprintf("%T", id))
 		return
 	}
 
@@ -118,6 +109,7 @@ func (c *Client) GetUserByGitlabID(id interface{}) (u models.User, err error) {
           WHERE gitlab_id = ?`
 	err = c.db.QueryRow(q, id).Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.GitlabID, &u.JiraID, &u.IsActive, &u.Role)
 	if err != nil {
+		err = ce.WrapWithLog(err, "get users by gitlab id")
 		return
 	}
 	return
@@ -132,6 +124,7 @@ func (c *Client) GetUsersByMrID(id int) (us []models.UserBrief, err error) {
 		    		  WHERE mr_id = ?)`
 	rows, err := c.db.Query(q, id)
 	if err != nil {
+		err = ce.WrapWithLog(err, "get users by mr id")
 		return
 	}
 	defer rows.Close()
@@ -139,6 +132,7 @@ func (c *Client) GetUsersByMrID(id int) (us []models.UserBrief, err error) {
 	var u models.UserBrief
 	for rows.Next() {
 		if err = rows.Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.Role); err != nil {
+			err = ce.WrapWithLog(err, "get users by mr id scan")
 			return
 		}
 		us = append(us, u)
@@ -146,7 +140,7 @@ func (c *Client) GetUsersByMrID(id int) (us []models.UserBrief, err error) {
 	return
 }
 
-func (c *Client) GetUserForReallocateMR(uID, mID int, role models.Role) (ups models.UserPayload, err error) {
+func (c *Client) GetUserForReallocateMR(uID, mID int, role models.Role) (up models.UserPayload, err error) {
 
 	q := `SELECT id, 
        			 telegram_id,
@@ -167,19 +161,10 @@ func (c *Client) GetUserForReallocateMR(uID, mID int, role models.Role) (ups mod
 		  ORDER BY payload
 		  LIMIT 1;`
 
-	rows, err := c.db.Query(q, role, uID, mID, uID)
+	err = c.db.QueryRow(q, role, uID, mID, uID).Scan(&up.ID, &up.TelegramID, &up.TelegramUsername, &up.Role, &up.Payload)
 	if err != nil {
+		err = ce.WrapWithLog(err, "get user for reallocate mr")
 		return
 	}
-	defer rows.Close()
-
-	var up models.UserPayload
-	for rows.Next() {
-		if err = rows.Scan(&up.ID, &up.TelegramID, &up.TelegramUsername, &up.Role, &up.Payload); err != nil {
-			return
-		}
-		ups = append(ups, up)
-	}
-
 	return
 }

@@ -3,6 +3,7 @@ package customErrors
 import (
 	"errors"
 	"fmt"
+	"log"
 )
 
 var (
@@ -15,6 +16,7 @@ var (
 	ErrChangeReviewComment    = errors.New("change is commented review error")
 	ErrCloseMRs               = errors.New("close merge request error")
 	ErrInvalidVariableType    = errors.New("invalid variable type")
+	ErrGetUsersWithPayload    = errors.New("users with payload not found")
 )
 
 func Wrap(err error, msg string) error {
@@ -22,4 +24,10 @@ func Wrap(err error, msg string) error {
 		return err
 	}
 	return errors.New(fmt.Sprintf("%s: %v", msg, err))
+}
+
+func WrapWithLog(err error, msg string) error {
+	err = Wrap(err, msg)
+	log.Println(err)
+	return err
 }

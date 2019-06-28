@@ -10,7 +10,8 @@ func (c *Client) SaveMR(mr models.MR) (models.MR, error) {
 	q := `INSERT INTO mrs (url, author_id) VALUES (?, ?);
 		  SELECT id FROM mrs WHERE url = ?`
 	if err := c.db.QueryRow(q, mr.URL, mr.AuthorID).Scan(&mr.ID); err != nil {
-		return models.MR{}, err
+		err = ce.WrapWithLog(err, "save mr")
+		return mr, err
 	}
 	return mr, nil
 }
@@ -19,6 +20,7 @@ func (c *Client) GetOpenedMRs() (mrs []models.MR, err error) {
 	q := `SELECT id, url, author_id FROM mrs WHERE is_closed = FALSE`
 	rows, err := c.db.Query(q)
 	if err != nil {
+		err = ce.WrapWithLog(err, "get opened mrs")
 		return
 	}
 	defer rows.Close()
@@ -26,6 +28,7 @@ func (c *Client) GetOpenedMRs() (mrs []models.MR, err error) {
 	var mr models.MR
 	for rows.Next() {
 		if err = rows.Scan(&mr.ID, &mr.URL, &mr.AuthorID); err != nil {
+			err = ce.WrapWithLog(err, "get opened mrs")
 			return
 		}
 		mrs = append(mrs, mr)
@@ -40,7 +43,8 @@ func (c *Client) CloseMRs() error {
 							WHERE is_approved= FALSE);`
 	_, err := c.db.Exec(q)
 	if err != nil {
-		return ce.Wrap(ce.ErrCloseMRs, err.Error())
+		err = ce.WrapWithLog(ce.ErrCloseMRs, err.Error())
+		return err
 	}
 
 	return nil
@@ -49,5 +53,8 @@ func (c *Client) CloseMRs() error {
 func (c *Client) GetMrByID(id int) (mr models.MR, err error) {
 	q := `SELECT id, url, author_id, is_closed FROM mrs WHERE id = ?`
 	err = c.db.QueryRow(q, id).Scan(&mr.ID, &mr.URL, &mr.AuthorID, &mr.IsClosed)
+	if err != nil {
+		err = ce.WrapWithLog(err, "get mr by id")
+	}
 	return
 }

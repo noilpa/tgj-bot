@@ -2,8 +2,9 @@ package database
 
 import (
 	"database/sql"
-	"errors"
 	"os"
+
+	ce "tgj-bot/customErrors"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -25,6 +26,7 @@ func RunDB(cfg DbConfig) (dbClient Client, err error) {
 	}
 	dbClient.db, err = sql.Open(cfg.DriverName, cfg.DSN)
 	if err != nil {
+		err = ce.WrapWithLog(err, "DB client err")
 		return
 	}
 	if err = initSchema(dbClient.db); err != nil {
@@ -40,7 +42,7 @@ func initSchema(db *sql.DB) (err error) {
 					  telegram_id TEXT UNIQUE,
 					  telegram_username TEXT,
 					  gitlab_id TEXT UNIQUE, 
-					  jira_id TEXT UNIQUE, 
+					  jira_id TEXT, 
 					  is_active INTEGER, 
 					  role TEXT);`
 
@@ -63,7 +65,8 @@ func initSchema(db *sql.DB) (err error) {
 
 	_, err = db.Exec(createUsers + createMrs + createReviews)
 	if err != nil {
-		return errors.New("create tables err: " + err.Error())
+		err = ce.WrapWithLog(err, "create tables")
+		return
 	}
 	return
 }

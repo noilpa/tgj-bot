@@ -8,17 +8,12 @@ import (
 
 func (c *Client) SaveReview(r models.Review) (err error) {
 	q := `INSERT INTO reviews (mr_id, user_id, updated_at) VALUES (?, ?, ?)`
-	res, err := c.db.Exec(q, r.MrID, r.UserID, r.UpdatedAt)
+	_, err = c.db.Exec(q, r.MrID, r.UserID, r.UpdatedAt)
 	if err != nil {
-		return ce.ErrCreateReview
+		err = ce.WrapWithLog(err, ce.ErrCreateUser.Error())
+		return
 	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if rows != 1 {
-		return ce.Wrap(ce.ErrCreateReview, "no affected rows")
-	}
+
 	return
 }
 
@@ -28,47 +23,41 @@ func (c *Client) UpdateReviewApprove(r models.Review) error {
 				updated_at = ?
 		  WHERE user_id = ? 
   			AND mr_id = ?`
-	res, err := c.db.Exec(q, r.IsApproved, r.UpdatedAt, r.UserID, r.MrID)
+	_, err := c.db.Exec(q, r.IsApproved, r.UpdatedAt, r.UserID, r.MrID)
 	if err != nil {
-		return ce.Wrap(ce.ErrChangeReviewApprove, err.Error())
-	}
-	_, err = res.RowsAffected()
-	if err != nil {
+		err = ce.WrapWithLog(err, "update review approve")
 		return err
 	}
 
 	return nil
 }
 
-func (c *Client) UpdateReviewComment(r models.Review) error {
+func (c *Client) UpdateReviewComment(r models.Review) (err error) {
 	q := `UPDATE reviews 
 			SET is_commented = ?,
 				updated_at = ?
 		  WHERE user_id = ? 
   			AND mr_id = ?`
-	res, err := c.db.Exec(q, r.IsCommented, r.UpdatedAt, r.UserID, r.MrID)
+	_, err = c.db.Exec(q, r.IsCommented, r.UpdatedAt, r.UserID, r.MrID)
 	if err != nil {
-		return ce.Wrap(ce.ErrChangeReviewComment, err.Error())
+		err = ce.WrapWithLog(err, "update review comment")
 	}
 
-	_, err = res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return
 }
 
 func (c *Client) GetUserReviewMRs(uID int) (ids []int, err error) {
 	q := `SELECT mr_id FROM reviews WHERE is_approved = FALSE AND user_id = ?`
 	rows, err := c.db.Query(q, uID)
 	if err != nil {
+		err = ce.WrapWithLog(err, "get user review mrs")
 		return
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		if err = rows.Scan(&uID); err!= nil {
+			err = ce.WrapWithLog(err, "get user review mrs scan")
 			return
 		}
 		ids = append(ids, uID)

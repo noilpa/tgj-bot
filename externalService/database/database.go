@@ -40,7 +40,7 @@ func initSchema(db *sql.DB) (err error) {
 	createUsers := `CREATE TABLE IF NOT EXISTS users (
 					  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
 					  telegram_id TEXT UNIQUE,
-					  telegram_username TEXT,
+					  telegram_username TEXT UNIQUE,
 					  gitlab_id TEXT UNIQUE, 
 					  jira_id TEXT, 
 					  is_active INTEGER, 

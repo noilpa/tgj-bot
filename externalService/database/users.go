@@ -9,7 +9,7 @@ import (
 )
 
 func (c *Client) SaveUser(user models.User) (err error) {
-	q := `INSERT INTO users (telegram_id, telegram_username, gitlab_id, jira_id, is_active, role)
+	q := `REPLACE INTO  users (telegram_id, telegram_username, gitlab_id, jira_id, is_active, role)
 		  VALUES (?, ?, ?, ?, ?, ?)`
 	_, err = c.db.Exec(q, user.TelegramID, user.TelegramUsername, user.GitlabID, user.JiraID, user.IsActive, user.Role)
 	if err != nil {
@@ -59,33 +59,11 @@ func (c *Client) GetUsersWithPayload(telegramID string) (ups models.UsersPayload
 	return
 }
 
-func (c *Client) GetUsers() (users models.Users, err error) {
-	q := `SELECT id, telegram_id, telegram_username, gitlab_id, jira_id, is_active, role 
-		  FROM users`
-
-	rows, err := c.db.Query(q)
-	if err != nil {
-		err = ce.WrapWithLog(err, "get users")
-		return
-	}
-	defer rows.Close()
-
-	var u models.User
-	for rows.Next() {
-		if err = rows.Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.GitlabID, &u.JiraID, &u.IsActive, &u.Role); err != nil {
-			err = ce.WrapWithLog(err, "get users scan")
-			return
-		}
-		users = append(users, u)
-	}
-	return
-}
-
-func (c *Client) GetUserByTgUsername(id string) (u models.User, err error) {
+func (c *Client) GetUserByTgUsername(tgUname string) (u models.User, err error) {
 	q := `SELECT id, telegram_id, telegram_username, gitlab_id, jira_id, is_active, role 
 		  FROM users 
           WHERE telegram_username = ?`
-	err = c.db.QueryRow(q, id).Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.GitlabID, &u.JiraID, &u.IsActive, &u.Role)
+	err = c.db.QueryRow(q, tgUname).Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.GitlabID, &u.JiraID, &u.IsActive, &u.Role)
 	if err != nil {
 		err = ce.WrapWithLog(err, "get user by telegram username")
 		return

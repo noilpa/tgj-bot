@@ -63,10 +63,12 @@ func (f *fixture) createUsersN(n int) models.Users {
 			},
 			GitlabID: th.String(),
 			JiraID:   th.String(),
-			IsActive: th.Bool(),
+			IsActive: true,
 		}
-		_, err := f.db.Exec(q, u.TelegramID, u.TelegramUsername, u.GitlabID, u.JiraID, u.IsActive, u.Role)
+		res, err := f.db.Exec(q, u.TelegramID, u.TelegramUsername, u.GitlabID, u.JiraID, u.IsActive, u.Role)
 		assert.NoError(f.T, err)
+		id, err := res.LastInsertId()
+		u.ID = int(id)
 		us[i] = u
 	}
 	return us
@@ -89,29 +91,39 @@ func (f *fixture) getUsers(tgUsername ...string) models.Users {
 }
 
 func (f *fixture) createMR(authorID int) models.MR {
-	return f.createMrs(authorID)[0]
+	return f.createMRs(authorID, 1)[0]
 }
 
-func (f *fixture) createMrs(authorIDs ...int) []models.MR {
+func (f *fixture) createMRs(authorID, n int) []models.MR {
 	q := `INSERT INTO mrs (url, author_id) VALUES (?, ?)`
-	n := len(authorIDs)
 	mrs := make([]models.MR, n, n)
 	for i := 0; i < n; i++ {
 		mr := models.MR{
 			URL:      th.String(),
-			AuthorID: authorIDs[i],
+			AuthorID: authorID,
 		}
-		_, err := f.db.Exec(q, mr.URL, mr.AuthorID)
+		res, err := f.db.Exec(q, mr.URL, mr.AuthorID)
 		assert.NoError(f.T, err)
+
+		id, err := res.LastInsertId()
+		assert.NoError(f.T, err)
+		mr.ID = int(id)
+		mrs[i] = mr
 	}
 	return mrs
 }
 
-func (f *fixture) getMR(url string) models.MR {
-	return f.getMrs(url)[0]
+func (f *fixture) closeMR(id int) {
+	q := `UPDATE mrs SET is_closed = TRUE WHERE id = ?`
+	_, err := f.db.Exec(q, id)
+	assert.NoError(f.T, err)
 }
 
-func (f *fixture) getMrs(urls ...string) []models.MR {
+func (f *fixture) getMR(url string) models.MR {
+	return f.getMRs(url)[0]
+}
+
+func (f *fixture) getMRs(urls ...string) []models.MR {
 	q := `SELECT id, url, author_id, is_closed FROM main.mrs WHERE url = ?`
 	n := len(urls)
 	mrs := make([]models.MR, n, n)
@@ -131,7 +143,7 @@ func (f *fixture) createReviews(reviews map[int][]int) []models.Review {
 	for u, mrs := range reviews {
 		for _, m := range mrs {
 			now := time.Now().Unix()
-			_, err := f.db.Exec(q, u, m, now)
+			_, err := f.db.Exec(q, m, u, now)
 			assert.NoError(f.T, err)
 			rvs = append(rvs, models.Review{
 				MrID:      m,
@@ -141,4 +153,41 @@ func (f *fixture) createReviews(reviews map[int][]int) []models.Review {
 		}
 	}
 	return rvs
+}
+
+func (f *fixture) getReviewsByMR(mrID int) (rs []models.Review) {
+	q := `SELECT mr_id, user_id, is_approved, is_commented, updated_at FROM reviews WHERE mr_id = ?`
+	rows, err := f.db.Query(q, mrID)
+	assert.NoError(f.T, err)
+	defer rows.Close()
+
+	var r models.Review
+	for rows.Next() {
+		assert.NoError(f.T, rows.Scan(&r.MrID, &r.UserID, &r.IsApproved, &r.IsCommented, &r.UpdatedAt))
+		rs = append(rs, r)
+	}
+	return
+}
+
+func (f *fixture) getReviewsByUser(uID int) (rs []models.Review) {
+	q := `SELECT mr_id, user_id, is_approved, is_commented, updated_at FROM reviews WHERE user_id = ?`
+	rows, err := f.db.Query(q, uID)
+	assert.NoError(f.T, err)
+	defer rows.Close()
+
+	var r models.Review
+	for rows.Next() {
+		assert.NoError(f.T, rows.Scan(&r.MrID, &r.UserID, &r.IsApproved, &r.IsCommented, &r.UpdatedAt))
+		rs = append(rs, r)
+	}
+	return
+}
+
+func isContain(s []int, e int) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }

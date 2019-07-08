@@ -25,33 +25,25 @@ func TestClient_SaveUser(t *testing.T) {
 			JiraID:   th.String(),
 			IsActive: th.Bool(),
 		}
-		assert.NoError(t, f.SaveUser(u))
+		var err error
+		u.ID, err = f.SaveUser(u)
+		assert.NoError(t, err)
 
 		actU := f.getUser(u.TelegramUsername)
-		u.ID = actU.ID
 		assert.Equal(t, u, actU)
 	})
-	t.Run("should update user", func(t *testing.T) {
-		f := newFixture(t)
-		defer f.finish()
+}
 
-		u := models.User{
-			UserBrief: models.UserBrief{
-				TelegramID:       th.String(),
-				TelegramUsername: th.String(),
-				Role:             th.Role(),
-			},
-			GitlabID: th.String(),
-			JiraID:   th.String(),
-			IsActive: th.Bool(),
-		}
-		assert.NoError(t, f.SaveUser(u))
-		u.GitlabID = th.String()
-		assert.NoError(t, f.SaveUser(u))
-		actU := f.getUser(u.TelegramUsername)
-		u.ID = actU.ID
-		assert.Equal(t, u, actU)
-	})
+func TestClient_UpdateUser(t *testing.T) {
+	f := newFixture(t)
+	defer f.finish()
+	u := f.createUser()
+	u.TelegramUsername = "new name"
+
+	assert.NoError(t, f.UpdateUser(u))
+	actU := f.getUser(u.TelegramUsername)
+
+	assert.Equal(t, u, actU)
 }
 
 func TestClient_ChangeIsActiveUser(t *testing.T) {
@@ -103,4 +95,23 @@ func TestClient_GetUserByGitlabID(t *testing.T) {
 		expU.ID = actU.ID
 		assert.Equal(t, expU, actU)
 	})
+}
+
+func TestClient_GetUsersByMrID(t *testing.T) {
+	f := newFixture(t)
+	defer f.finish()
+
+	u := f.createUsersN(3)
+	m := f.createMR(u[0].ID)
+	reviews := make(map[int][]int)
+	reviews[u[1].ID] = []int{m.ID}
+	reviews[u[2].ID] = []int{m.ID}
+	f.createReviews(reviews)
+
+	ubs, err := f.GetUsersByMrID(m.ID)
+	assert.NoError(t, err)
+	assert.Len(t, ubs, len(reviews))
+	for _, ub := range ubs {
+		assert.True(t, isContain([]int{u[1].ID, u[2].ID}, ub.ID))
+	}
 }

@@ -58,15 +58,15 @@ func (a *App) Serve() (err error) {
 			case registerCmd:
 				err = a.registerHandler(update)
 			case inactiveCmd:
-				if err = a.isUserRegister(tgUsername); err == nil {
+				if _, err = a.isUserRegister(tgUsername); err == nil {
 					err = a.isActiveHandler(update, false)
 				}
 			case activeCmd:
-				if err = a.isUserRegister(tgUsername); err == nil {
+				if _, err = a.isUserRegister(tgUsername); err == nil {
 					err = a.isActiveHandler(update, true)
 				}
 			case mrCmd:
-				if err = a.isUserRegister(tgUsername); err == nil {
+				if _, err = a.isUserRegister(tgUsername); err == nil {
 					err = a.mrHandler(update)
 				}
 			default:
@@ -83,9 +83,10 @@ func (a *App) Serve() (err error) {
 	return
 }
 
-func (a *App) isUserRegister(tgUsername string) (err error) {
-	if _, err = a.DB.GetUserByTgUsername(tgUsername); err != nil {
-		err = ce.ErrUserNorRegistered
+func (a *App) isUserRegister(tgUsername string) (int, error) {
+	u, err := a.DB.GetUserByTgUsername(tgUsername)
+	if err != nil {
+		err = ce.WrapWithLog(err, ce.ErrUserNorRegistered.Error())
 	}
-	return
+	return int(u.ID), err
 }

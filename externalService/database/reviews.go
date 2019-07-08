@@ -46,7 +46,7 @@ func (c *Client) UpdateReviewComment(r models.Review) (err error) {
 	return
 }
 
-func (c *Client) GetUserReviewMRs(uID int) (ids []int, err error) {
+func (c *Client) GetReviewMRsByUserID(uID int) (ids []int, err error) {
 	q := `SELECT mr_id FROM reviews WHERE is_approved = FALSE AND user_id = ?`
 	rows, err := c.db.Query(q, uID)
 	if err != nil {
@@ -61,6 +61,15 @@ func (c *Client) GetUserReviewMRs(uID int) (ids []int, err error) {
 			return
 		}
 		ids = append(ids, uID)
+	}
+	return
+}
+
+func (c *Client) DeleteReview(r models.Review) (err error) {
+	q := `DELETE FROM reviews WHERE mr_id = ? AND user_id = ?`
+	_, err = c.db.Exec(q, r.MrID, r.UserID)
+	if err != nil {
+		err = ce.WrapWithLog(err, "delete user review")
 	}
 	return
 }

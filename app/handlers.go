@@ -48,8 +48,19 @@ func (a *App) registerHandler(update tgbotapi.Update) (err error) {
 		}
 	}
 
-	if err = a.DB.SaveUser(user); err != nil {
-		return err
+	if id, err := a.isUserRegister(user.TelegramUsername); err != nil {
+		user.ID = id
+	}
+
+	// because REPLACE function change user id in table
+	if user.ID != 0 {
+		if err := a.DB.UpdateUser(user); err != nil {
+			return err
+		}
+	} else {
+		if _, err = a.DB.SaveUser(user); err != nil {
+			return err
+		}
 	}
 
 	return a.sendTgMessage(success)
@@ -99,7 +110,20 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 
 	// можно забирать url МРа для gitlab
 	mrUrl := args[0]
-	_, err = url.Parse(mrUrl)
+	url_, err := url.Parse(mrUrl)
+	if err != nil {
+		return
+	}
+	pathArr := strings.Split(url_.Path, "/")
+	mrID, err := strconv.Atoi(pathArr[len(pathArr)-1])
+	if err != nil {
+		return
+	}
+	authorGitlabID, err := a.Gitlab.GetMrAuthorID(mrID)
+	if err != nil {
+		return
+	}
+	author, err := a.DB.GetUserByGitlabID(authorGitlabID)
 	if err != nil {
 		return
 	}
@@ -108,7 +132,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 		return
 	}
 
-	users, err := a.DB.GetUsersWithPayload(strconv.Itoa(update.Message.From.ID))
+	users, err := a.DB.GetUsersWithPayload(strconv.Itoa(author.ID))
 	if err != nil {
 		log.Printf("getting users failed: %v", err)
 		return errors.New("getting users failed")
@@ -124,10 +148,6 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 	}
 
 	// сохранить в таблицу mrs и reviews
-	author, err := a.DB.GetUserByTgUsername(update.Message.From.UserName)
-	if err != nil {
-		return
-	}
 	mr := models.MR{
 		URL:      mrUrl,
 		AuthorID: author.ID,
@@ -250,7 +270,7 @@ func (a *App) reallocateUserMRs(u models.User) (err error) {
 	//     выбрать пользователя с минимальным payload
 	//     и так далее по логике
 
-	mrsID, err := a.DB.GetUserReviewMRs(u.ID)
+	mrsID, err := a.DB.GetReviewMRsByUserID(u.ID)
 	if err != nil {
 		return err
 	}
@@ -259,10 +279,18 @@ func (a *App) reallocateUserMRs(u models.User) (err error) {
 		if err != nil {
 			return err
 		}
+		// create new review
 		if err = a.DB.SaveReview(models.Review{
 			MrID:      mrID,
 			UserID:    user.ID,
 			UpdatedAt: time.Now().Unix(),
+		}); err != nil {
+			return err
+		}
+		// clean up old review
+		if err = a.DB.DeleteReview(models.Review{
+			MrID:        mrID,
+			UserID:      u.ID,
 		}); err != nil {
 			return err
 		}

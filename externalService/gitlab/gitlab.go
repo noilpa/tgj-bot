@@ -72,3 +72,11 @@ func (c *Client) CheckMrComments(mrID int) (users map[int]bool, err error) {
 func isOpenIssue(state string) bool {
 	return state == openIssue
 }
+
+func (c *Client) GetMrAuthorID(mrID int) (int, error) {
+	mr, _, err := c.Gitlab.MergeRequests.GetMergeRequest(c.Project.ID, mrID, nil)
+	if err != nil {
+		return 0, err
+	}
+	return mr.Author.ID, nil
+}

@@ -7,12 +7,18 @@ import (
 )
 
 func (c *Client) SaveMR(mr models.MR) (models.MR, error) {
-	q := `INSERT INTO mrs (url, author_id) VALUES (?, ?);
-		  SELECT id FROM mrs WHERE url = ?`
-	if err := c.db.QueryRow(q, mr.URL, mr.AuthorID).Scan(&mr.ID); err != nil {
+	q := `INSERT INTO mrs (url, author_id) VALUES (?, ?)`
+	res, err := c.db.Exec(q, mr.URL, mr.AuthorID, mr.URL)
+	if err != nil {
 		err = ce.WrapWithLog(err, "save mr")
 		return mr, err
 	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		err = ce.WrapWithLog(err, "save mr")
+		return mr, err
+	}
+	mr.ID = int(id)
 	return mr, nil
 }
 
@@ -58,3 +64,5 @@ func (c *Client) GetMrByID(id int) (mr models.MR, err error) {
 	}
 	return
 }
+
+

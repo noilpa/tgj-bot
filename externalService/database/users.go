@@ -8,14 +8,33 @@ import (
 	"tgj-bot/models"
 )
 
-func (c *Client) SaveUser(user models.User) (err error) {
-	q := `REPLACE INTO  users (telegram_id, telegram_username, gitlab_id, jira_id, is_active, role)
+func (c *Client) SaveUser(u models.User) (int, error) {
+	q := `INSERT INTO  users (telegram_id, telegram_username, gitlab_id, jira_id, is_active, role)
 		  VALUES (?, ?, ?, ?, ?, ?)`
-	_, err = c.db.Exec(q, user.TelegramID, user.TelegramUsername, user.GitlabID, user.JiraID, user.IsActive, user.Role)
+	res, err := c.db.Exec(q, u.TelegramID, u.TelegramUsername, u.GitlabID, u.JiraID, u.IsActive, u.Role)
 	if err != nil {
 		err = ce.WrapWithLog(err, ce.ErrCreateUser.Error())
+		return 0, err
 	}
-	return
+	id, err := res.LastInsertId()
+	if err != nil {
+		err = ce.WrapWithLog(err, ce.ErrCreateUser.Error())
+		return 0, err
+	}
+
+	return int(id), nil
+}
+
+func (c *Client) UpdateUser(u models.User) error {
+	q := `REPLACE INTO  users (id, telegram_id, telegram_username, gitlab_id, jira_id, is_active, role)
+		  VALUES (?, ?, ?, ?, ?, ?, ?)`
+	_, err := c.db.Exec(q, u.ID, u.TelegramID, u.TelegramUsername, u.GitlabID, u.JiraID, u.IsActive, u.Role)
+
+	if err != nil {
+		err = ce.WrapWithLog(err, ce.ErrCreateUser.Error())
+		return err
+	}
+	return nil
 }
 
 func (c *Client) ChangeIsActiveUser(telegramUsername string, isActive bool) (err error) {
@@ -27,7 +46,7 @@ func (c *Client) ChangeIsActiveUser(telegramUsername string, isActive bool) (err
 	return
 }
 
-func (c *Client) GetUsersWithPayload(telegramID string) (ups models.UsersPayload, err error) {
+func (c *Client) GetUsersWithPayload(exceptTelegramID string) (ups models.UsersPayload, err error) {
 	q := `SELECT id, 
        			 telegram_id,
        			 telegram_username,
@@ -41,7 +60,7 @@ func (c *Client) GetUsersWithPayload(telegramID string) (ups models.UsersPayload
 			AND is_active = TRUE
 		  ORDER BY payload;`
 
-	rows, err := c.db.Query(q, telegramID)
+	rows, err := c.db.Query(q, exceptTelegramID)
 	if err != nil {
 		err = ce.WrapWithLog(err, "get users with payload")
 		return

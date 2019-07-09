@@ -14,7 +14,17 @@ func (a *App) notify(timeout int64) {
 	//    получить лайки и коменты
 	//    выслать одно сообщение
 	//
-
+	// слать нотификации в определенное время Time
+	// если не получены лайки и коменты за время Delay
+	// пересчитывать лайки и комменты перед нотификацией
+	//
+	if a.Config.Notifier.IsAllow {
+		go func(){
+			
+		}()
+	} else {
+		log.Println("Notifications does not allow in config")
+	}
 }
 
 func (a *App) sendTgMessage(msg string) (err error) {

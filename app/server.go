@@ -10,15 +10,22 @@ import (
 )
 
 type Config struct {
-	Tg tg.TgConfig     `json:"telegram"`
-	Gl gl.GitlabConfig `json:"gitlab"`
-	Db db.DbConfig     `json:"database"`
-	Rp ReviewParty     `json:"review_party"`
+	Tg       tg.TgConfig     `json:"telegram"`
+	Gl       gl.GitlabConfig `json:"gitlab"`
+	Db       db.DbConfig     `json:"database"`
+	Rp       ReviewParty     `json:"review_party"`
+	Notifier NotifierConfig  `json:"notifier"`
 }
 
 type ReviewParty struct {
 	LeadNum int `json:"lead"`
 	DevNum  int `json:"dev"`
+}
+
+type NotifierConfig struct {
+	IsAllow bool  `json:"is_allow"`
+	Time    int64 `json:"time"`
+	Delay   int64 `json:"delay"`
 }
 
 type App struct {

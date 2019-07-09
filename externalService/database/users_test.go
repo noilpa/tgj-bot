@@ -115,3 +115,39 @@ func TestClient_GetUsersByMrID(t *testing.T) {
 		assert.True(t, isContain([]int{u[1].ID, u[2].ID}, ub.ID))
 	}
 }
+
+func TestClient_GetUsersWithPayload(t *testing.T) {
+	f := newFixture(t)
+	defer f.finish()
+	u := f.createUsersN(2)
+	m0 := f.createMRs(u[0].ID, 3)
+	m1 := f.createMR(u[1].ID)
+	m0Arr := []int{m0[0].ID, m0[1].ID, m0[2].ID}
+
+	reviews := make(map[int][]int)
+	reviews[u[0].ID] = []int{m1.ID}
+	reviews[u[1].ID] = m0Arr
+	f.createReviews(reviews)
+
+	ups, err := f.GetUsersWithPayload(u[0].TelegramID)
+	assert.NoError(t, err)
+	assert.Equal(t, len(m0Arr), ups[0].Payload)
+}
+
+func TestClient_GetUserForReallocateMR(t *testing.T) {
+	f := newFixture(t)
+	defer f.finish()
+	u := f.createUsersN(3)
+	m0 := f.createMRs(u[0].ID, 3)
+	m1 := f.createMR(u[1].ID)
+	m0Arr := []int{m0[0].ID, m0[1].ID, m0[2].ID}
+
+	reviews := make(map[int][]int)
+	reviews[u[0].ID] = []int{m1.ID}
+	reviews[u[1].ID] = m0Arr
+	f.createReviews(reviews)
+
+	up, err := f.GetUserForReallocateMR(u[0].UserBrief, m1.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, u[2].ID, up.ID)
+}

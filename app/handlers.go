@@ -90,7 +90,7 @@ func (a *App) isActiveHandler(update tgbotapi.Update, isActive bool) (err error)
 		return
 	}
 
-	// перераспределить МРы деактивированного пользователя
+	// reallocate MRs for inactive user
 	if !isActive {
 		if err = a.reallocateUserMRs(u); err != nil {
 			return
@@ -108,7 +108,6 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 	}
 	args := strings.Split(strings.ToLower(argsStr), " ")
 
-	// можно забирать url МРа для gitlab
 	mrUrl := args[0]
 	url_, err := url.Parse(mrUrl)
 	if err != nil {
@@ -138,7 +137,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 		return errors.New("getting users failed")
 	}
 
-	// если комманда не набирается, но не нулевая то все ОК
+	// if the party is not picked up, but not zero, then everything is OK
 	reviewParty, err := getParticipants(users, a.Config.Rp)
 	if err != nil {
 		return
@@ -147,7 +146,6 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 		return ce.ErrUsersForReviewNotFound
 	}
 
-	// сохранить в таблицу mrs и reviews
 	mr := models.MR{
 		URL:      mrUrl,
 		AuthorID: author.ID,
@@ -188,11 +186,11 @@ func getParticipants(users models.UsersPayload, cfg ReviewParty) (rp models.User
 
 func (a *App) updateReviews() error {
 	//
-	// пойти по всем открытым МРам
-	//    зайти в мр
-	//    получить лайки и коменты
-	//    обновить значения в таблице reviews
-	// закрыть МРы у которых все ревью approved
+	// get all open MRI
+	// 	 go to mr
+	// 	 get likes and comments
+	// 	 update values in the table reviews
+	// close MRs with all approved reviews
 	//
 	mrs, err := a.DB.GetOpenedMRs()
 	if err != nil {
@@ -261,21 +259,18 @@ func (a *App) updateMrComments(mID int) error {
 }
 
 func (a *App) reallocateUserMRs(u models.User) (err error) {
-	// получить список незаапрувленных МРов пользователя
-	//     получить список пользователей для МРа
-	//     вычислить список пользователей на кого можно перевести ревью (не создатель МР,
-	//                                                                   не тот кто ушел инактив,
-	//                                                                   не тот кто уже на этом МРе,
-	//                                                                   такая же роль)
-	//     выбрать пользователя с минимальным payload
-	//     и так далее по логике
+	// get list unapproved user's mrs
+	//     get mr's reviewers list
+	//     generate review candidate list (not mr's author is active, not already review this mr, same role)
+	//     get user with min payload
+	//     repeat
 
 	mrsID, err := a.DB.GetReviewMRsByUserID(u.ID)
 	if err != nil {
 		return err
 	}
 	for _, mrID := range mrsID {
-		user, err := a.DB.GetUserForReallocateMR(u.ID, mrID, u.Role)
+		user, err := a.DB.GetUserForReallocateMR(u.UserBrief, mrID)
 		if err != nil {
 			return err
 		}
@@ -298,7 +293,7 @@ func (a *App) reallocateUserMRs(u models.User) (err error) {
 		if err != nil {
 			return err
 		}
-		return a.sendTgMessage(fmt.Sprintf("New review: %v , @%s", mr.URL, u.TelegramUsername))
+		return a.sendTgMessage(fmt.Sprintf("New review: %v , @%s", mr.URL, user.TelegramUsername))
 	}
 	return nil
 }

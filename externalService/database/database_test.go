@@ -59,7 +59,7 @@ func (f *fixture) createUsersN(n int) models.Users {
 			UserBrief: models.UserBrief{
 				TelegramID:       th.String(),
 				TelegramUsername: th.String(),
-				Role:             th.Role(),
+				Role:             models.Developer,
 			},
 			GitlabID: th.String(),
 			JiraID:   th.String(),

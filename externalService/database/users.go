@@ -137,7 +137,7 @@ func (c *Client) GetUsersByMrID(id int) (us []models.UserBrief, err error) {
 	return
 }
 
-func (c *Client) GetUserForReallocateMR(uID, mID int, role models.Role) (up models.UserPayload, err error) {
+func (c *Client) GetUserForReallocateMR(u models.UserBrief, mID int) (up models.UserPayload, err error) {
 
 	q := `SELECT id, 
        			 telegram_id,
@@ -158,7 +158,7 @@ func (c *Client) GetUserForReallocateMR(uID, mID int, role models.Role) (up mode
 		  ORDER BY payload
 		  LIMIT 1;`
 
-	err = c.db.QueryRow(q, role, uID, mID, uID).Scan(&up.ID, &up.TelegramID, &up.TelegramUsername, &up.Role, &up.Payload)
+	err = c.db.QueryRow(q, u.Role, u.ID, mID, u.ID).Scan(&up.ID, &up.TelegramID, &up.TelegramUsername, &up.Role, &up.Payload)
 	if err != nil {
 		err = ce.WrapWithLog(err, "get user for reallocate mr")
 		return

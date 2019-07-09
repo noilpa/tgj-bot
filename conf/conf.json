@@ -13,5 +13,14 @@
     "driver": "sqlite3",
     "dsn": "./tgj.db",
     "is_need_remove_old_db": false
+  },
+  "review_party": {
+    "lead": 1,
+    "dev": 1
+  },
+  "notifier": {
+    "is_notification_allow": false,
+    "notification_check_timeout": 0,
+    "updated_at_delay": 0
   }
 }

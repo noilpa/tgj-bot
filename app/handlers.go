@@ -1,6 +1,7 @@
 package app
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -124,7 +125,10 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 	}
 	author, err := a.DB.GetUserByGitlabID(authorGitlabID)
 	if err != nil {
-		return
+		if err != sql.ErrNoRows {
+			return
+		}
+		author = models.User{UserBrief: models.UserBrief{ID: 0}}
 	}
 
 	if err = a.updateReviews(); err != nil {
@@ -306,7 +310,7 @@ func (a *App) reallocateUserMRs(u models.User) (err error) {
 	return nil
 }
 
-func (a *App) skipWeekends(endTime int64) (newEndTime int64){
+func (a *App) skipWeekends(endTime int64) (newEndTime int64) {
 	// +1 day -> monday
 	if time.Unix(endTime+a.Config.Notifier.Delay, 0).Weekday() == time.Sunday {
 		endTime += time.Unix(24*60*60, 0).Unix()

@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"testing"
 
 	"tgj-bot/models"
@@ -94,6 +95,15 @@ func TestClient_GetUserByGitlabID(t *testing.T) {
 		assert.NoError(t, err)
 		expU.ID = actU.ID
 		assert.Equal(t, expU, actU)
+	})
+	t.Run("should return err if user not found", func(t *testing.T) {
+		f := newFixture(t)
+		defer f.finish()
+
+		_, err := f.GetUserByGitlabID(th.Int())
+		assert.Error(t, err)
+		assert.Equal(t, sql.ErrNoRows, err)
+
 	})
 }
 

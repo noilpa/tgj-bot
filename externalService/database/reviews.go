@@ -56,7 +56,7 @@ func (c *Client) GetReviewMRsByUserID(uID int) (ids []int, err error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		if err = rows.Scan(&uID); err!= nil {
+		if err = rows.Scan(&uID); err != nil {
 			err = ce.WrapWithLog(err, "get user review mrs scan")
 			return
 		}
@@ -70,6 +70,24 @@ func (c *Client) DeleteReview(r models.Review) (err error) {
 	_, err = c.db.Exec(q, r.MrID, r.UserID)
 	if err != nil {
 		err = ce.WrapWithLog(err, "delete user review")
+	}
+	return
+}
+
+func (c *Client) GetOpenedReviewsByUserID(uID int) (rs []models.Review, err error) {
+	q := `SELECT mr_id, user_id, is_commented, updated_at FROM reviews WHERE user_id = ? AND is_approved = FALSE`
+	rows, err := c.db.Query(q, uID)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	var r models.Review
+	for rows.Next() {
+		if err = rows.Scan(&r.MrID, &r.UserID, &r.IsCommented, &r.UpdatedAt); err != nil {
+			return
+		}
+		rs = append(rs, r)
 	}
 	return
 }

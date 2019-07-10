@@ -40,16 +40,15 @@ func RunGitlab(cfg GitlabConfig) (client Client, err error) {
 //
 
 // return list of users with emoji on mr
-func (c *Client) CheckMrLikes(mrID int) (users []int, err error) {
+func (c *Client) CheckMrLikes(mrID int) (users map[int]struct{}, err error) {
 	emojies, _, err := c.Gitlab.AwardEmoji.ListMergeRequestAwardEmoji(c.Project.ID, mrID, nil)
 	if err != nil {
 		return
 	}
-	ids := make(map[int]struct{})
+	users = make(map[int]struct{})
 	for _, e := range emojies {
-		if _, found := ids[e.User.ID]; !found {
-			ids[e.User.ID] = struct{}{}
-			users = append(users, e.User.ID)
+		if _, found := users[e.User.ID]; !found {
+			users[e.User.ID] = struct{}{}
 		}
 	}
 	return
@@ -57,14 +56,16 @@ func (c *Client) CheckMrLikes(mrID int) (users []int, err error) {
 
 // если есть открытые комметны то нотификацию получает хост МРа
 // return list of users with open comment flag
-func (c *Client) CheckMrComments(mrID int) (users map[int]bool, err error) {
+func (c *Client) CheckMrComments(mrID int) (users map[int]struct{}, err error) {
 	comments, _, err := c.Gitlab.MergeRequests.GetIssuesClosedOnMerge(c.Project.ID, mrID, nil)
 	if err != nil {
 		return nil, err
 	}
-	users = make(map[int]bool)
+	users = make(map[int]struct{})
 	for _, comment := range comments {
-		users[comment.Author.ID] = users[comment.Author.ID] || isOpenIssue(comment.State)
+		if _, found := users[comment.Author.ID]; !found{
+			users[comment.Author.ID] = struct{}{}
+		}
 	}
 	return
 }

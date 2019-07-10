@@ -23,9 +23,10 @@ type ReviewParty struct {
 }
 
 type NotifierConfig struct {
-	IsAllow bool  `json:"is_allow"`
-	Time    int64 `json:"time"`
-	Delay   int64 `json:"delay"`
+	IsAllow    bool  `json:"is_allow"`
+	TimeHour   int   `json:"time_hour"`
+	TimeMinute int   `json:"time_minute"`
+	Delay      int64 `json:"delay"`
 }
 
 type App struct {

@@ -165,3 +165,22 @@ func (c *Client) GetUserForReallocateMR(u models.UserBrief, mID int) (up models.
 	}
 	return
 }
+
+func (c *Client) GetActiveUsers() (us models.Users, err error) {
+	q := `SELECT id, telegram_id, telegram_username, gitlab_id, jira_id, is_active, role FROM users WHERE is_active = TRUE`
+
+	rows, err := c.db.Query(q)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	var u models.User
+	for rows.Next() {
+		if err = rows.Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.GitlabID, &u.JiraID, &u.IsActive, &u.Role); err != nil {
+			return
+		}
+		us = append(us, u)
+	}
+	return
+}

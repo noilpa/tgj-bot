@@ -217,16 +217,20 @@ func (a *App) updateMrLikes(mID int) error {
 	if err != nil {
 		return err
 	}
-	for _, uID := range usersID {
+	for uID := range usersID {
 		u, err := a.DB.GetUserByGitlabID(uID)
 		if err != nil {
 			return err
 		}
+
+		now := time.Now().Unix()
+		now = a.skipWeekends(now)
+
 		err = a.DB.UpdateReviewApprove(models.Review{
 			MrID:       mID,
 			UserID:     u.ID,
 			IsApproved: true,
-			UpdatedAt:  time.Now().Unix(),
+			UpdatedAt:  now,
 		})
 		if err != nil {
 			return err
@@ -236,20 +240,24 @@ func (a *App) updateMrLikes(mID int) error {
 }
 
 func (a *App) updateMrComments(mID int) error {
-	comments, err := a.Gitlab.CheckMrComments(mID)
+	usersID, err := a.Gitlab.CheckMrComments(mID)
 	if err != nil {
 		return err
 	}
-	for uID := range comments {
+	for uID := range usersID {
 		u, err := a.DB.GetUserByGitlabID(uID)
 		if err != nil {
 			return err
 		}
+
+		now := time.Now().Unix()
+		now = a.skipWeekends(now)
+
 		err = a.DB.UpdateReviewComment(models.Review{
 			MrID:        mID,
 			UserID:      u.ID,
 			IsCommented: true,
-			UpdatedAt:   time.Now().Unix(),
+			UpdatedAt:   now,
 		})
 		if err != nil {
 			return err
@@ -284,8 +292,8 @@ func (a *App) reallocateUserMRs(u models.User) (err error) {
 		}
 		// clean up old review
 		if err = a.DB.DeleteReview(models.Review{
-			MrID:        mrID,
-			UserID:      u.ID,
+			MrID:   mrID,
+			UserID: u.ID,
 		}); err != nil {
 			return err
 		}
@@ -296,4 +304,17 @@ func (a *App) reallocateUserMRs(u models.User) (err error) {
 		return a.sendTgMessage(fmt.Sprintf("New review: %v , @%s", mr.URL, user.TelegramUsername))
 	}
 	return nil
+}
+
+func (a *App) skipWeekends(endTime int64) (newEndTime int64){
+	// +1 day -> monday
+	if time.Unix(endTime+a.Config.Notifier.Delay, 0).Weekday() == time.Sunday {
+		endTime += time.Unix(24*60*60, 0).Unix()
+	}
+
+	// +2 days -> monday
+	if time.Unix(endTime+a.Config.Notifier.Delay, 0).Weekday() == time.Saturday {
+		endTime += time.Unix(2*24*60*60, 0).Unix()
+	}
+	return
 }

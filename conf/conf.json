@@ -2,7 +2,8 @@
   "telegram": {
     "token": "xxxxxx-xxxxx-xxxxxx",
     "update_timeout": 60,
-    "proxy": ""
+    "proxy": "",
+    "chat_id": -123456
   },
   "gitlab": {
     "token": "xxxxxx-xxxxxx-xxxxx",
@@ -11,7 +12,7 @@
   "jira": {},
   "database": {
     "driver": "sqlite3",
-    "dsn": "./tgj.db",
+    "dsn": "/db/tgj.db",
     "is_need_remove_old_db": false
   },
   "review_party": {
@@ -19,8 +20,9 @@
     "dev": 1
   },
   "notifier": {
-    "is_notification_allow": false,
-    "notification_check_timeout": 0,
-    "updated_at_delay": 0
+    "is_allow": false,
+    "time_hour": 12,
+    "time_minute": 30,
+    "delay": 259200
   }
 }

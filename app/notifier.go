@@ -59,11 +59,12 @@ func (a *App) notify(timeout int64) {
 							break
 						}
 
-						msg := fmt.Sprintf("@%s\n%s\n", u.TelegramUsername, cutoff)
-						msg += mrStr
+						if mrStr != "" {
+							msg := fmt.Sprintf("@%s\n%s\n", u.TelegramUsername, cutoff)
+							msg += mrStr
 
-						log.Println(a.sendTgMessage(msg))
-
+							log.Println(a.sendTgMessage(msg))
+						}
 					}
 					isNotified = true
 				}
@@ -97,7 +98,7 @@ func (a *App) buildNotifierMRString(uID int) (s string, err error) {
 			mr, err := a.DB.GetMrByID(r.MrID)
 			if err != nil {
 				err = ce.WrapWithLog(err, "notifier build message")
-				return
+				return s, err
 			}
 			s += fmt.Sprintf("%s\n", mr.URL)
 		}

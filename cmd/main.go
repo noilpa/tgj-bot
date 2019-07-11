@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -22,10 +21,13 @@ func main() {
 
 	if len(os.Args) == 2 {
 		app.Config, err = readConfig(os.Args[1])
+		log.Printf("arg config path: %s", os.Args[1])
+
 	} else {
 		app.Config, err = readConfig("../conf/test_conf.json")
 	}
 	if err != nil {
+		log.Println("config not found")
 		log.Panic(err)
 	}
 
@@ -48,7 +50,7 @@ func main() {
 
 func readConfig(path string) (cfg a.Config, err error) {
 	path, err = filepath.Abs(path)
-	fmt.Println(path)
+	log.Println(path)
 	if err != nil {
 		return
 	}

@@ -19,3 +19,26 @@
 5. Добавлять merge-requests: /mr url
 6. При покидании проекта пользователь пишет: /inactive
 7. При возвращении на проект пользователь пишет: /active
+
+## DEPLOY
+Скачать проект и собрать контейнер
+```bash
+git clone tgj-bot-repo-url
+cd tgj-bot
+docker build .
+```
+Подготовить конфиг
+```bash
+nano config/config.json
+```
+Запустить образ (image_id получается после выполнения docker build .)
+```bash
+docker run -v $(pwd)/db:/db -v $(pwd)/conf:/conf -d image_id```
+
+------------
+
+
+В общем виде команда выглядит
+```bash
+docker run -v /host/dir/db:/db /host/dir/conf:/conf -d imaje_id
+```

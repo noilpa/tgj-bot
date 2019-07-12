@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"tgj-bot/models"
-	th "tgj-bot/testHelpers"
+	th "tgj-bot/testhelpers"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"tgj-bot/customErrors"
+	ce "tgj-bot/customErrors"
 
 	"golang.org/x/net/proxy"
 
@@ -56,7 +56,7 @@ func initHTTPClient(proxyRaw string) (*http.Client, error) {
 	if proxyRaw != "" {
 		proxyUrl, err := url.Parse(proxyRaw)
 		if err != nil {
-			return nil, customErrors.WrapWithLog(err, "invalid proxy")
+			return nil, ce.WrapWithLog(err, "invalid proxy")
 		}
 		switch strings.ToLower(proxyUrl.Scheme) {
 		case "http", "https":
@@ -67,14 +67,14 @@ func initHTTPClient(proxyRaw string) (*http.Client, error) {
 		case "socks5", "socks5h":
 			dialer, err := proxy.FromURL(proxyUrl, proxy.Direct)
 			if err != nil {
-				return nil, customErrors.WrapWithLog(err, "cannot init socks proxy")
+				return nil, ce.WrapWithLog(err, "cannot init socks proxy")
 			}
 			transport := &http.Transport{
 				Dial: dialer.Dial,
 			}
 			client.Transport = transport
 		default:
-			return nil, customErrors.WrapWithLog(fmt.Errorf("invalid proxy type: %s, supported: http or socks5", proxyUrl.Scheme), "")
+			return nil, ce.WrapWithLog(fmt.Errorf("invalid proxy type: %s, supported: http or socks5", proxyUrl.Scheme), "")
 		}
 	}
 

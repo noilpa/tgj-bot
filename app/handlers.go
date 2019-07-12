@@ -45,7 +45,7 @@ func (a *App) registerHandler(update tgbotapi.Update) (err error) {
 		if models.IsValidRole(role) {
 			user.Role = role
 		} else {
-			return errors.New(fmt.Sprintf("second parameter (role) must be equal one of %", models.ValidRoles))
+			return errors.New(fmt.Sprintf("second parameter (role) must be equal one of %v", models.ValidRoles))
 		}
 	}
 

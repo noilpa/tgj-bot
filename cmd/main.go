@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 
 	a "tgj-bot/app"
-	"tgj-bot/externalService/database"
-	gitlab_ "tgj-bot/externalService/gitlab"
-	"tgj-bot/externalService/telegram"
+	"tgj-bot/external_service/database"
+	gitlab_ "tgj-bot/external_service/gitlab"
+	"tgj-bot/external_service/telegram"
 )
 
 func main() {

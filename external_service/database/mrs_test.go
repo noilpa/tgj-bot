@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"tgj-bot/models"
-	"tgj-bot/testHelpers"
+	"tgj-bot/testhelpers"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -15,7 +15,7 @@ func TestClient_SaveMR(t *testing.T) {
 		defer f.finish()
 		u := f.createUser()
 		mr := models.MR{
-			URL:      testHelpers.String(),
+			URL:      testhelpers.String(),
 			AuthorID: u.ID,
 		}
 		mr, err := f.SaveMR(mr)
@@ -29,7 +29,7 @@ func TestClient_SaveMR(t *testing.T) {
 		defer f.finish()
 		u := f.createUser()
 		mr := models.MR{
-			URL:      testHelpers.String(),
+			URL:      testhelpers.String(),
 			AuthorID: u.ID,
 		}
 		mr, err := f.SaveMR(mr)

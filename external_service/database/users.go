@@ -1,7 +1,9 @@
 package database
 
 import (
+	"database/sql"
 	"fmt"
+	"log"
 	"strconv"
 
 	ce "tgj-bot/customErrors"
@@ -106,6 +108,10 @@ func (c *Client) GetUserByGitlabID(id interface{}) (u models.User, err error) {
           WHERE gitlab_id = ?`
 	err = c.db.QueryRow(q, id).Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.GitlabID, &u.JiraID, &u.IsActive, &u.Role)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("get users by gitlab id: %v:", err)
+			return
+		}
 		err = ce.WrapWithLog(err, "get users by gitlab id")
 		return
 	}

@@ -1,0 +1,19 @@
+stages:
+  - test
+  - build
+
+test:
+  stage: test
+  image: golang:1.12-alpine
+  script:
+    - go build -o bin/tgj-bot ./cmd
+    - go test ./...
+
+#build:
+#  stage: build
+#  image:
+#  only:
+#    - master
+#  script:
+#    - docker build .
+

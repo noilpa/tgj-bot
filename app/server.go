@@ -4,9 +4,9 @@ import (
 	"log"
 
 	ce "tgj-bot/customErrors"
-	db "tgj-bot/externalService/database"
-	gl "tgj-bot/externalService/gitlab"
-	tg "tgj-bot/externalService/telegram"
+	db "tgj-bot/external_service/database"
+	gl "tgj-bot/external_service/gitlab"
+	tg "tgj-bot/external_service/telegram"
 )
 
 type Config struct {

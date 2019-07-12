@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	th "tgj-bot/testHelpers"
+	th "tgj-bot/testhelpers"
 
 	"tgj-bot/models"
 

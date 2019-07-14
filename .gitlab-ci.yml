@@ -1,21 +1,25 @@
+image: golang:1.12-alpine
+
+services:
+  - docker:dind
+
 stages:
   - test
   - build
 
 test:
   stage: test
-  image: golang:1.12-alpine
   script:
     - pwd
     - ls -l
     - go build -o bin/tgj-bot ./cmd
     - go test ./...
 
-#build:
-#  stage: build
-#  image:
-#  only:
-#    - master
-#  script:
-#    - docker build .
+build:
+  stage: build
+  only:
+    - master
+  script:
+    - echo master
+  when: manual
 

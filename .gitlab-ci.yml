@@ -10,6 +10,7 @@ stages:
 test:
   stage: test
   script:
+    - apk add git
     - git --version
     - go env
     - pwd

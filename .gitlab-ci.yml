@@ -10,6 +10,8 @@ stages:
 test:
   stage: test
   script:
+    - docker ps -a
+    - go env
     - pwd
     - ls -l
     - go build -o bin/tgj-bot ./cmd

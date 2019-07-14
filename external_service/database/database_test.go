@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"tgj-bot/testhelpers"
+	"tgj-bot/th"
 
 	"tgj-bot/models"
 
@@ -57,12 +57,12 @@ func (f *fixture) createUsersN(n int) models.Users {
 	for i := 0; i < n; i++ {
 		u := models.User{
 			UserBrief: models.UserBrief{
-				TelegramID:       testhelpers.String(),
-				TelegramUsername: testhelpers.String(),
+				TelegramID:       th.String(),
+				TelegramUsername: th.String(),
 				Role:             models.Developer,
 			},
-			GitlabID: testhelpers.String(),
-			JiraID:   testhelpers.String(),
+			GitlabID: th.String(),
+			JiraID:   th.String(),
 			IsActive: true,
 		}
 		res, err := f.db.Exec(q, u.TelegramID, u.TelegramUsername, u.GitlabID, u.JiraID, u.IsActive, u.Role)
@@ -99,7 +99,7 @@ func (f *fixture) createMRs(authorID, n int) []models.MR {
 	mrs := make([]models.MR, n, n)
 	for i := 0; i < n; i++ {
 		mr := models.MR{
-			URL:      testhelpers.String(),
+			URL:      th.String(),
 			AuthorID: authorID,
 		}
 		res, err := f.db.Exec(q, mr.URL, mr.AuthorID)

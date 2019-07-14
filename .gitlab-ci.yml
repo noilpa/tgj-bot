@@ -10,6 +10,7 @@ stages:
 test:
   stage: test
   script:
+    - git --version
     - go env
     - pwd
     - ls -l

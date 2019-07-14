@@ -1,7 +1,5 @@
 image: golang:1.12-alpine
 
-entrypoint: ["/bin/sh", "-c"]
-
 services:
   - docker:dind
 
@@ -12,7 +10,6 @@ stages:
 test:
   stage: test
   script:
-    - docker ps -a
     - go env
     - pwd
     - ls -l
@@ -24,6 +21,5 @@ build:
   only:
     - master
   script:
-    - echo master
-  when: manual
+    - docker build .
 

@@ -10,7 +10,7 @@ stages:
 test:
   stage: test
   script:
-    - apk add git
+    - apk add --no-cache git gcc musl-dev
     - git --version
     - go env
     - pwd

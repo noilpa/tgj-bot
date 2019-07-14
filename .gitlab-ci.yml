@@ -17,6 +17,7 @@ test:
 
 build:
   stage: build
+  image: docker:stable
   only:
     - master
   script:

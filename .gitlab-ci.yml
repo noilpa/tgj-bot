@@ -17,6 +17,8 @@ test:
 
 build:
   stage: build
+  tags:
+    - nc-office
   image: docker:stable
   only:
     - master

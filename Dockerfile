@@ -10,5 +10,6 @@ COPY ./ ./
 RUN go build -o bin/tgj-bot ./cmd
 
 FROM alpine
+RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
 COPY --from=build /src/bin/tgj-bot /usr/bin/tgj-bot
 ENTRYPOINT ["tgj-bot", "/conf/conf.json"]

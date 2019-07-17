@@ -65,4 +65,10 @@ func (c *Client) GetMrByID(id int) (mr models.MR, err error) {
 	return
 }
 
+func (c *Client) GetMRbyURL(url string) (mr models.MR, err error) {
+	q := `SELECT id, url, author_id, is_closed FROM main.mrs WHERE url = ?`
+	err = c.db.QueryRow(q, url).Scan(&mr.ID, &mr.URL, &mr.AuthorID, &mr.IsClosed)
+	return
+}
+
 

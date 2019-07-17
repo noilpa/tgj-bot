@@ -143,6 +143,9 @@ func (c *Client) GetUsersByMrID(id int) (us []models.UserBrief, err error) {
 	return
 }
 
+func (c *Client) GetUsersByMrURL(url string) (us []models.User, err error) {
+}
+
 func (c *Client) GetUserForReallocateMR(u models.UserBrief, mID int) (up models.UserPayload, err error) {
 
 	q := `SELECT id, 

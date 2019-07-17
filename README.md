@@ -31,14 +31,8 @@ docker build .
 ```bash
 nano config/config.json
 ```
-Запустить образ (image_id получается после выполнения docker build .)
+Запустить образ
 ```bash
-docker run -v $(pwd)/db:/db -v $(pwd)/conf:/conf -d image_id```
-
-------------
-
-
-В общем виде команда выглядит
-```bash
-docker run -v /host/dir/db:/db /host/dir/conf:/conf -d imaje_id
+docker-compose up -d
 ```
+

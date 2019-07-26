@@ -3,6 +3,7 @@ image: golang:1.12-alpine
 variables:
   DOCKER_REGISTRY: registry.itv.restr.im:5000
   IMAGE_DIR: new-cache/tgj-bot
+  DOCKER_TLS_CERTDIR: ''
 
 before_script:
   - export IMAGE_NAME=${DOCKER_REGISTRY}/${IMAGE_DIR}:latest

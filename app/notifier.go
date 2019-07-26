@@ -15,7 +15,7 @@ const (
 	cutoff   = "===================="
 )
 
-func (a *App) notify(timeout int64) {
+func (a *App) notify() {
 	//
 	// слать нотификации в определенное время Time
 	// если не получены лайки и коменты за время Delay
@@ -31,15 +31,12 @@ func (a *App) notify(timeout int64) {
 				if newDay != curDay {
 					curDay = newDay
 					isNotified = false
+					if curDay == time.Saturday || curDay == time.Sunday {
+						isNotified = true
+					}
 				}
 
-				// do not notify on weekends
-				// in theory, the situation is impossible because the skipWeekends() method is used
-				if newDay == time.Saturday || newDay == time.Sunday {
-					isNotified = true
-				}
-
-				if approximatelyEqual(t, a.Config.Notifier) && !isNotified {
+				if t.Hour() >= a.Config.Notifier.TimeHour && t.Minute() >= a.Config.Notifier.TimeMinute && !isNotified {
 					// main logic
 					if err := a.updateReviews(); err != nil {
 						log.Println(ce.Wrap(err, "notifier update reviews"))
@@ -80,10 +77,6 @@ func (a *App) sendTgMessage(msg string) (err error) {
 		log.Printf("Couldn't send message '%v': %v", m, err)
 	}
 	return
-}
-
-func approximatelyEqual(time time.Time, cfg NotifierConfig) bool {
-	return time.Hour() == cfg.TimeHour && (time.Minute() > cfg.TimeMinute-1 && time.Minute() < cfg.TimeMinute+1)
 }
 
 func (a *App) buildNotifierMRString(uID int) (s string, err error) {

@@ -5,9 +5,44 @@ import (
 	"os"
 
 	ce "tgj-bot/customErrors"
+	"tgj-bot/models"
 
 	_ "github.com/mattn/go-sqlite3"
 )
+
+type Database interface {
+	Close()
+}
+
+type UserRepository interface {
+	SaveUser(u models.User) (int, error)
+	UpdateUser(u models.User) error
+	ChangeIsActiveUser(telegramUsername string, isActive bool) (err error)
+	GetUsersWithPayload(exceptTelegramID string) (ups models.UsersPayload, err error)
+	GetUserByTgUsername(tgUname string) (u models.User, err error)
+	GetUserByGitlabID(id interface{}) (u models.User, err error)
+	GetUsersByMrID(id int) (us []models.UserBrief, err error)
+	GetUsersByMrURL(url string) (us []models.UserBrief, err error)
+	GetUserForReallocateMR(u models.UserBrief, mID int) (up models.UserPayload, err error)
+	GetActiveUsers() (us models.Users, err error)
+}
+
+type MergeRequestRepository interface {
+	SaveMR(mr models.MR) (models.MR, error)
+	GetOpenedMRs() (mrs []models.MR, err error)
+	CloseMRs() error
+	GetMrByID(id int) (mr models.MR, err error)
+	GetMRbyURL(url string) (mr models.MR, err error)
+}
+
+type ReviewRepository interface {
+	SaveReview(r models.Review) (err error)
+	UpdateReviewApprove(r models.Review) error
+	UpdateReviewComment(r models.Review) (err error)
+	GetReviewMRsByUserID(uID int) (ids []int, err error)
+	DeleteReview(r models.Review) (err error)
+	GetOpenedReviewsByUserID(uID int) (rs []models.Review, err error)
+}
 
 type DbConfig struct {
 	DriverName        string `json:"driver"`
@@ -29,14 +64,14 @@ func RunDB(cfg DbConfig) (dbClient Client, err error) {
 		err = ce.WrapWithLog(err, "DB client err")
 		return
 	}
-	if err = initSchema(dbClient.db); err != nil {
+	if err = dbClient.initSchema(); err != nil {
 		return
 	}
 
 	return
 }
 
-func initSchema(db *sql.DB) (err error) {
+func (c *Client) initSchema() (err error) {
 	createUsers := `CREATE TABLE IF NOT EXISTS users (
 					  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
 					  telegram_id TEXT UNIQUE,
@@ -63,7 +98,7 @@ func initSchema(db *sql.DB) (err error) {
 					    FOREIGN KEY(mr_id) REFERENCES mrs(id),
 					    FOREIGN KEY(user_id) REFERENCES users(id));`
 
-	_, err = db.Exec(createUsers + createMrs + createReviews)
+	_, err = c.db.Exec(createUsers + createMrs + createReviews)
 	if err != nil {
 		err = ce.WrapWithLog(err, "create tables")
 		return

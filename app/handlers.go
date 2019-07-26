@@ -342,7 +342,15 @@ func (a *App) isMrAlreadyExist(url string) bool {
 }
 
 func (a *App) returnMrParty(url string) (err error) {
-	mr, err := a.DB.GetMRbyURL(url)
-	a.DB.GetUsersByMrID()
-	return
+	us, err := a.DB.GetUsersByMrURL(url)
+	var msg string
+	for _, u := range us {
+		msg += fmt.Sprintf("@%s\n", u.TelegramUsername)
+	}
+	msg += cutoff
+	msg += fmt.Sprintf("\n%s", url)
+	if err = a.sendTgMessage("Review party:"); err != nil {
+		return err
+	}
+	return a.sendTgMessage(msg)
 }

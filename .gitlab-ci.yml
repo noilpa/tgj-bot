@@ -6,7 +6,6 @@ variables:
 
 before_script:
   - export IMAGE_NAME=${DOCKER_REGISTRY}/${IMAGE_DIR}:latest
-  - docker info
 
 services:
   - docker:dind

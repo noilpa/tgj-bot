@@ -114,6 +114,11 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 	if err != nil {
 		return
 	}
+
+	if a.isMrAlreadyExist(mrUrl) {
+		return a.returnMrParty(mrUrl)
+	}
+
 	pathArr := strings.Split(url_.Path, "/")
 	mrID, err := strconv.Atoi(pathArr[len(pathArr)-1])
 	if err != nil {
@@ -163,15 +168,16 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 		UpdatedAt: time.Now().Unix(),
 	}
 
-	msg := fmt.Sprintf("Merge request %v !!! ", mr.URL)
+	msg := fmt.Sprintln("New merge request!!! ")
 	for _, r := range reviewParty {
 		review.UserID = r.ID
 		if err = a.DB.SaveReview(review); err != nil {
 			return
 		}
-		msg += fmt.Sprintf("@%v ", r.TelegramUsername)
+		msg += fmt.Sprintf("@%v\n", r.TelegramUsername)
 	}
-	msg += "review please"
+
+	msg += "%v\nreview please"
 
 	return a.sendTgMessage(msg)
 }
@@ -321,4 +327,30 @@ func (a *App) skipWeekends(endTime int64) (newEndTime int64) {
 		endTime += time.Unix(2*24*60*60, 0).Unix()
 	}
 	return
+}
+
+func (a *App) isMrAlreadyExist(url string) bool {
+	mr, err := a.DB.GetMRbyURL(url)
+	if err != nil {
+		return false
+	}
+	defaultValue := models.MR{}
+	if mr !=  defaultValue {
+		return true
+	}
+	return false
+}
+
+func (a *App) returnMrParty(url string) (err error) {
+	us, err := a.DB.GetUsersByMrURL(url)
+	var msg string
+	for _, u := range us {
+		msg += fmt.Sprintf("@%s\n", u.TelegramUsername)
+	}
+	msg += cutoff
+	msg += fmt.Sprintf("\n%s", url)
+	if err = a.sendTgMessage("Review party:"); err != nil {
+		return err
+	}
+	return a.sendTgMessage(msg)
 }

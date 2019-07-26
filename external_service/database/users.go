@@ -143,6 +143,26 @@ func (c *Client) GetUsersByMrID(id int) (us []models.UserBrief, err error) {
 	return
 }
 
+func (c *Client) GetUsersByMrURL(url string) (us []models.UserBrief, err error) {
+	q := `SELECT id, telegram_id, telegram_username, role FROM users WHERE id IN (SELECT user_id FROM reviews WHERE mr_id = ?)`
+	rows, err := c.db.Query(q, url)
+	if err != nil {
+		err = ce.WrapWithLog(err, "get users by mr url")
+		return
+	}
+	defer rows.Close()
+
+	var u models.UserBrief
+	for rows.Next() {
+		if err = rows.Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.Role); err != nil {
+			err = ce.WrapWithLog(err, "get users by mr url scan")
+			return
+		}
+		us = append(us, u)
+	}
+	return
+}
+
 func (c *Client) GetUserForReallocateMR(u models.UserBrief, mID int) (up models.UserPayload, err error) {
 
 	q := `SELECT id, 

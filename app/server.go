@@ -49,6 +49,7 @@ const (
 const success = "Success!"
 
 func (a *App) Serve() (err error) {
+	a.notify()
 	for update := range a.Telegram.Updates {
 		if update.Message == nil {
 			continue

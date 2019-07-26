@@ -37,7 +37,7 @@ func newFixture(t *testing.T) *fixture {
 	Client{db: db},
 		T: t,
 	}
-	assert.NoError(t, initSchema(f.db))
+	assert.NoError(t, f.initSchema())
 	return f
 }
 

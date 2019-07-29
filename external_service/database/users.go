@@ -144,7 +144,13 @@ func (c *Client) GetUsersByMrID(id int) (us []models.UserBrief, err error) {
 }
 
 func (c *Client) GetUsersByMrURL(url string) (us []models.UserBrief, err error) {
-	q := `SELECT id, telegram_id, telegram_username, role FROM users WHERE id IN (SELECT user_id FROM reviews WHERE mr_id = ?)`
+	q := `SELECT id, telegram_id, telegram_username, role 
+		  FROM users 
+		  WHERE id IN (SELECT user_id 
+		  			   FROM reviews 
+		  			   WHERE mr_id = (SELECT id 
+		  			   				  FROM mrs 
+		  			   				  WHERE url = ?))`
 	rows, err := c.db.Query(q, url)
 	if err != nil {
 		err = ce.WrapWithLog(err, "get users by mr url")
@@ -192,7 +198,7 @@ func (c *Client) GetUserForReallocateMR(u models.UserBrief, mID int) (up models.
 	return
 }
 
-func (c *Client) GetActiveUsers() (us models.Users, err error) {
+func (c *Client) GetActiveUsers() (us models.UserList, err error) {
 	q := `SELECT id, telegram_id, telegram_username, gitlab_id, jira_id, is_active, role FROM users WHERE is_active = TRUE`
 
 	rows, err := c.db.Query(q)

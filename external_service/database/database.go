@@ -24,7 +24,7 @@ type UserRepository interface {
 	GetUsersByMrID(id int) (us []models.UserBrief, err error)
 	GetUsersByMrURL(url string) (us []models.UserBrief, err error)
 	GetUserForReallocateMR(u models.UserBrief, mID int) (up models.UserPayload, err error)
-	GetActiveUsers() (us models.Users, err error)
+	GetActiveUsers() (us models.UserList, err error)
 }
 
 type MergeRequestRepository interface {

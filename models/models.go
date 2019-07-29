@@ -18,7 +18,7 @@ type User struct {
 	IsActive bool
 }
 
-type Users []User
+type UserList []User
 
 type UserPayload struct {
 	UserBrief

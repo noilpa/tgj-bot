@@ -85,7 +85,6 @@ func TestClient_GetUserReviewMRs(t *testing.T) {
 	}
 }
 
-
 func TestClient_DeleteReview(t *testing.T) {
 	f := newFixture(t)
 	defer f.finish()

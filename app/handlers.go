@@ -182,18 +182,6 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 	return a.sendTgMessage(msg)
 }
 
-func getParticipants(users models.UsersPayload, cfg ReviewParty) (rp models.UsersPayload, err error) {
-	devs, err := users.GetN(cfg.DevNum, models.Developer)
-	if err != nil {
-		return nil, err
-	}
-	leads, err := users.GetN(cfg.LeadNum, models.Lead)
-	if err != nil {
-		return nil, err
-	}
-	return append(devs, leads...), nil
-}
-
 func (a *App) updateReviews() error {
 	//
 	// get all open MRI
@@ -207,6 +195,10 @@ func (a *App) updateReviews() error {
 		return nil
 	}
 	for _, mr := range mrs {
+		mrIsOpen, err := a.Gitlab.MrIsOpen(mr.ID)
+		if !mrIsOpen {
+			return a.DB.CloseMR(mr.ID)
+		}
 		if err = a.updateMrLikes(mr.ID); err != nil {
 			return err
 		}
@@ -335,7 +327,7 @@ func (a *App) isMrAlreadyExist(url string) bool {
 		return false
 	}
 	defaultValue := models.MR{}
-	if mr !=  defaultValue {
+	if mr != defaultValue {
 		return true
 	}
 	return false
@@ -353,4 +345,16 @@ func (a *App) returnMrParty(url string) (err error) {
 		return err
 	}
 	return a.sendTgMessage(msg)
+}
+
+func getParticipants(users models.UsersPayload, cfg ReviewParty) (rp models.UsersPayload, err error) {
+	devs, err := users.GetN(cfg.DevNum, models.Developer)
+	if err != nil {
+		return nil, err
+	}
+	leads, err := users.GetN(cfg.LeadNum, models.Lead)
+	if err != nil {
+		return nil, err
+	}
+	return append(devs, leads...), nil
 }

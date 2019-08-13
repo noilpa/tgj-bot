@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"time"
 
 	ce "tgj-bot/customErrors"
@@ -11,8 +12,15 @@ import (
 )
 
 const (
-	greeting = "Daily notification"
-	cutoff   = "===================="
+	greeting = "🚀 Daily notification 🌞"
+	cutoff   = "-----------------------"
+)
+
+var (
+	point = []string{"🔹", "🔸"}
+	emoji = []string{"😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "☺", "️🙂", "🤗", "🤔", "😐",
+		"😑", "😶", "🙄", "😏", "😣", "😥", "😮", "🤐", "😯", "😪", "😫", "😴", "😌", "😛", "😜", "😝", "🤤", "😒", "😓",
+		"😔", "😕", "🙃", "🤑", "😲", "☹", "️🙁", "😖", "😞", "😟", "😤", "😢", "😭", "😦", "😧", "😨", "😩"}
 )
 
 func (a *App) notify() {
@@ -57,7 +65,7 @@ func (a *App) notify() {
 						}
 
 						if mrStr != "" {
-							msg := fmt.Sprintf("@%s\n%s\n", u.TelegramUsername, cutoff)
+							msg := fmt.Sprintf("@%s %s\n%s\n", u.TelegramUsername, randEmoji(), cutoff)
 							msg += mrStr
 
 							log.Println(a.sendTgMessage(msg))
@@ -86,15 +94,19 @@ func (a *App) buildNotifierMRString(uID int) (s string, err error) {
 		return
 	}
 
-	for _, r := range rs {
+	for i, r := range rs {
 		if time.Now().Unix() > r.UpdatedAt+a.Config.Notifier.Delay {
 			mr, err := a.DB.GetMrByID(r.MrID)
 			if err != nil {
 				err = ce.WrapWithLog(err, "notifier build message")
 				return s, err
 			}
-			s += fmt.Sprintf("%s\n", mr.URL)
+			s += fmt.Sprintf("%s %s\n", string(point[i%2]), mr.URL)
 		}
 	}
 	return
+}
+
+func randEmoji() string {
+	return emoji[rand.Intn(len(emoji))]
 }

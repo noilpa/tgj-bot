@@ -46,7 +46,7 @@ const (
 	mrCmd       = command("mr")
 )
 
-const success = "Success!"
+const success = "Success! 👍"
 
 func (a *App) Serve() (err error) {
 	a.notify()

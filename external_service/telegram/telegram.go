@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	ce "tgj-bot/customErrors"
+	ce "tgj-bot/custom_errors"
 
 	"golang.org/x/net/proxy"
 

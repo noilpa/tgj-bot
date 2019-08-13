@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"os"
 
-	ce "tgj-bot/customErrors"
+	ce "tgj-bot/custom_errors"
 	"tgj-bot/models"
 
 	_ "github.com/mattn/go-sqlite3"

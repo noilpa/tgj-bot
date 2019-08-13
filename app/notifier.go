@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"time"
 
-	ce "tgj-bot/customErrors"
+	ce "tgj-bot/custom_errors"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 )

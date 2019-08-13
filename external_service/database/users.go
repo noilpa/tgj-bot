@@ -6,7 +6,7 @@ import (
 	"log"
 	"strconv"
 
-	ce "tgj-bot/customErrors"
+	ce "tgj-bot/custom_errors"
 	"tgj-bot/models"
 )
 

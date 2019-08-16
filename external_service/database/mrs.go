@@ -1,7 +1,7 @@
 package database
 
 import (
-	ce "tgj-bot/customErrors"
+	ce "tgj-bot/custom_errors"
 
 	"tgj-bot/models"
 )
@@ -56,12 +56,29 @@ func (c *Client) CloseMRs() error {
 	return nil
 }
 
+func (c *Client) CloseMR(id int) error {
+	q := `UPDATE mrs SET is_closed=True
+		  WHERE  id = ?`
+	_, err := c.db.Exec(q)
+	if err != nil {
+		err = ce.WrapWithLog(ce.ErrCloseMRs, err.Error())
+		return err
+	}
+	return nil
+}
+
 func (c *Client) GetMrByID(id int) (mr models.MR, err error) {
 	q := `SELECT id, url, author_id, is_closed FROM mrs WHERE id = ?`
 	err = c.db.QueryRow(q, id).Scan(&mr.ID, &mr.URL, &mr.AuthorID, &mr.IsClosed)
 	if err != nil {
 		err = ce.WrapWithLog(err, "get mr by id")
 	}
+	return
+}
+
+func (c *Client) GetMRbyURL(url string) (mr models.MR, err error) {
+	q := `SELECT id, url, author_id, is_closed FROM main.mrs WHERE url = ?`
+	err = c.db.QueryRow(q, url).Scan(&mr.ID, &mr.URL, &mr.AuthorID, &mr.IsClosed)
 	return
 }
 

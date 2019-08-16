@@ -3,19 +3,27 @@ package app
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"time"
 
-	ce "tgj-bot/customErrors"
+	ce "tgj-bot/custom_errors"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 const (
-	greeting = "Daily notification"
-	cutoff   = "===================="
+	greeting = "🚀 Daily notification 🌞"
+	cutoff   = "-----------------------"
 )
 
-func (a *App) notify(timeout int64) {
+var (
+	point = []string{"🔹", "🔸"}
+	emoji = []string{"😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "☺", "️🙂", "🤗", "🤔", "😐",
+		"😑", "😶", "🙄", "😏", "😣", "😥", "😮", "🤐", "😯", "😪", "😫", "😴", "😌", "😛", "😜", "😝", "🤤", "😒", "😓",
+		"😔", "😕", "🙃", "🤑", "😲", "☹", "️🙁", "😖", "😞", "😟", "😤", "😢", "😭", "😦", "😧", "😨", "😩"}
+)
+
+func (a *App) notify() {
 	//
 	// слать нотификации в определенное время Time
 	// если не получены лайки и коменты за время Delay
@@ -31,15 +39,12 @@ func (a *App) notify(timeout int64) {
 				if newDay != curDay {
 					curDay = newDay
 					isNotified = false
+					if curDay == time.Saturday || curDay == time.Sunday {
+						isNotified = true
+					}
 				}
 
-				// do not notify on weekends
-				// in theory, the situation is impossible because the skipWeekends() method is used
-				if newDay == time.Saturday || newDay == time.Sunday {
-					isNotified = true
-				}
-
-				if approximatelyEqual(t, a.Config.Notifier) && !isNotified {
+				if t.Hour() >= a.Config.Notifier.TimeHour && t.Minute() >= a.Config.Notifier.TimeMinute && !isNotified {
 					// main logic
 					if err := a.updateReviews(); err != nil {
 						log.Println(ce.Wrap(err, "notifier update reviews"))
@@ -60,7 +65,7 @@ func (a *App) notify(timeout int64) {
 						}
 
 						if mrStr != "" {
-							msg := fmt.Sprintf("@%s\n%s\n", u.TelegramUsername, cutoff)
+							msg := fmt.Sprintf("@%s %s\n%s\n", u.TelegramUsername, randEmoji(), cutoff)
 							msg += mrStr
 
 							log.Println(a.sendTgMessage(msg))
@@ -82,10 +87,6 @@ func (a *App) sendTgMessage(msg string) (err error) {
 	return
 }
 
-func approximatelyEqual(time time.Time, cfg NotifierConfig) bool {
-	return time.Hour() == cfg.TimeHour && (time.Minute() > cfg.TimeMinute-1 && time.Minute() < cfg.TimeMinute+1)
-}
-
 func (a *App) buildNotifierMRString(uID int) (s string, err error) {
 	rs, err := a.DB.GetOpenedReviewsByUserID(uID)
 	if err != nil {
@@ -93,15 +94,19 @@ func (a *App) buildNotifierMRString(uID int) (s string, err error) {
 		return
 	}
 
-	for _, r := range rs {
+	for i, r := range rs {
 		if time.Now().Unix() > r.UpdatedAt+a.Config.Notifier.Delay {
 			mr, err := a.DB.GetMrByID(r.MrID)
 			if err != nil {
 				err = ce.WrapWithLog(err, "notifier build message")
 				return s, err
 			}
-			s += fmt.Sprintf("%s\n", mr.URL)
+			s += fmt.Sprintf("%s %s\n", string(point[i%2]), mr.URL)
 		}
 	}
 	return
+}
+
+func randEmoji() string {
+	return emoji[rand.Intn(len(emoji))]
 }

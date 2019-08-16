@@ -1,7 +1,7 @@
 package database
 
 import (
-	ce "tgj-bot/customErrors"
+	ce "tgj-bot/custom_errors"
 
 	"tgj-bot/models"
 )
@@ -75,7 +75,12 @@ func (c *Client) DeleteReview(r models.Review) (err error) {
 }
 
 func (c *Client) GetOpenedReviewsByUserID(uID int) (rs []models.Review, err error) {
-	q := `SELECT mr_id, user_id, is_commented, updated_at FROM reviews WHERE user_id = ? AND is_approved = FALSE`
+	q := `SELECT mr_id, user_id, is_commented, updated_at 
+		  FROM reviews
+		  JOIN mrs m on reviews.mr_id = m.id
+		  WHERE user_id = ? 
+		    AND is_approved = FALSE
+		    AND m.is_closed = FALSE`
 	rows, err := c.db.Query(q, uID)
 	if err != nil {
 		return

@@ -37,7 +37,7 @@ func newFixture(t *testing.T) *fixture {
 	Client{db: db},
 		T: t,
 	}
-	assert.NoError(t, initSchema(f.db))
+	assert.NoError(t, f.initSchema())
 	return f
 }
 
@@ -50,7 +50,7 @@ func (f *fixture) createUser() models.User {
 	return f.createUsersN(1)[0]
 }
 
-func (f *fixture) createUsersN(n int) models.Users {
+func (f *fixture) createUsersN(n int) []models.User {
 	q := `INSERT INTO users (telegram_id, telegram_username, gitlab_id, jira_id, is_active, role)
 		  VALUES (?, ?, ?, ?, ?, ?)`
 	us := make([]models.User, n, n)
@@ -78,7 +78,7 @@ func (f *fixture) getUser(tgUsername string) models.User {
 	return f.getUsers(tgUsername)[0]
 }
 
-func (f *fixture) getUsers(tgUsername ...string) models.Users {
+func (f *fixture) getUsers(tgUsername ...string) models.UserList {
 	q := `SELECT id, telegram_id, telegram_username, gitlab_id, jira_id, is_active, role FROM users WHERE telegram_username = ?`
 	n := len(tgUsername)
 	us := make([]models.User, n, n)

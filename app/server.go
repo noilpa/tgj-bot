@@ -3,7 +3,7 @@ package app
 import (
 	"log"
 
-	ce "tgj-bot/customErrors"
+	ce "tgj-bot/custom_errors"
 	db "tgj-bot/external_service/database"
 	gl "tgj-bot/external_service/gitlab"
 	tg "tgj-bot/external_service/telegram"
@@ -46,9 +46,10 @@ const (
 	mrCmd       = command("mr")
 )
 
-const success = "Success!"
+const success = "Success! 👍"
 
 func (a *App) Serve() (err error) {
+	a.notify()
 	for update := range a.Telegram.Updates {
 		if update.Message == nil {
 			continue

@@ -5,8 +5,18 @@ import (
 )
 
 const (
-	openIssue = "opened"
+	opened = "opened"
+	closed = "closed"
+	locked = "locked"
+	merged = "merged"
 )
+
+type GitlabService interface {
+	CheckMrLikes(mrID int) (users map[int]struct{}, err error)
+	CheckMrComments(mrID int) (users map[int]struct{}, err error)
+	GetMrAuthorID(mrID int) (int, error)
+	MrIsOpen(mrID int) (bool, error)
+}
 
 type GitlabConfig struct {
 	Token     string `json:"token"`
@@ -63,15 +73,11 @@ func (c *Client) CheckMrComments(mrID int) (users map[int]struct{}, err error) {
 	}
 	users = make(map[int]struct{})
 	for _, comment := range comments {
-		if _, found := users[comment.Author.ID]; !found{
+		if _, found := users[comment.Author.ID]; !found {
 			users[comment.Author.ID] = struct{}{}
 		}
 	}
 	return
-}
-
-func isOpenIssue(state string) bool {
-	return state == openIssue
 }
 
 func (c *Client) GetMrAuthorID(mrID int) (int, error) {
@@ -80,4 +86,12 @@ func (c *Client) GetMrAuthorID(mrID int) (int, error) {
 		return 0, err
 	}
 	return mr.Author.ID, nil
+}
+
+func (c *Client) MrIsOpen(mrID int) (bool, error) {
+	mr, _, err := c.Gitlab.MergeRequests.GetMergeRequest(c.Project.ID, mrID, nil)
+	if err != nil {
+		return false, err
+	}
+	return mr.State == opened, nil
 }

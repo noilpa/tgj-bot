@@ -161,3 +161,19 @@ func TestClient_GetUserForReallocateMR(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, u[2].ID, up.ID)
 }
+
+func TestClient_GetUsersByMrURL(t *testing.T) {
+	f := newFixture(t)
+	defer f.finish()
+
+	u := f.createUsersN(3)
+	m := f.createMR(u[0].ID)
+	reviews := make(map[int][]int)
+	reviews[u[1].ID] = []int{m.ID}
+	reviews[u[2].ID] = []int{m.ID}
+	f.createReviews(reviews)
+
+	us, err := f.GetUsersByMrURL(m.URL)
+	assert.NoError(t, err)
+	assert.Len(t, us, 2)
+}

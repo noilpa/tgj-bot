@@ -1,7 +1,7 @@
 package models
 
 import (
-	ce "tgj-bot/customErrors"
+	ce "tgj-bot/custom_errors"
 )
 
 type UserBrief struct {
@@ -18,7 +18,7 @@ type User struct {
 	IsActive bool
 }
 
-type Users []User
+type UserList []User
 
 type UserPayload struct {
 	UserBrief

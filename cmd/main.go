@@ -9,6 +9,8 @@ import (
 
 	a "tgj-bot/app"
 	"tgj-bot/external_service/database"
+	gitlab_ "tgj-bot/external_service/gitlab"
+	"tgj-bot/external_service/telegram"
 )
 
 func main() {
@@ -29,10 +31,10 @@ func main() {
 		log.Panic(err)
 	}
 
-	//app.Telegram, err = telegram.RunBot(app.Config.Tg)
-	//if err != nil {
-	//	log.Panic(err)
-	//}
+	app.Telegram, err = telegram.RunBot(app.Config.Tg)
+	if err != nil {
+		log.Panic(err)
+	}
 
 	app.DB, err = database.RunDB(app.Config.Db)
 	if err != nil {
@@ -40,9 +42,9 @@ func main() {
 	}
 	defer app.DB.Close()
 
-	//app.Gitlab, err = gitlab_.RunGitlab(app.Config.Gl)
-	//
-	//err = app.Serve()
+	app.Gitlab, err = gitlab_.RunGitlab(app.Config.Gl)
+
+	err = app.Serve()
 	log.Print("I'll be back...")
 }
 

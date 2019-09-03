@@ -7,7 +7,7 @@ import (
 	ce "tgj-bot/custom_errors"
 	"tgj-bot/models"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 )
 
 type Database interface {
@@ -48,6 +48,7 @@ type DbConfig struct {
 	DriverName        string `json:"driver"`
 	DSN               string `json:"dsn"`
 	IsNeedRemoveOldDB bool   `json:"is_need_remove_old_db"`
+	Engine            string
 }
 
 type Client struct {
@@ -73,7 +74,7 @@ func RunDB(cfg DbConfig) (dbClient Client, err error) {
 
 func (c *Client) initSchema() (err error) {
 	createUsers := `CREATE TABLE IF NOT EXISTS users (
-					  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+					  id SERIAL PRIMARY KEY, 
 					  telegram_id TEXT UNIQUE,
 					  telegram_username TEXT UNIQUE,
 					  gitlab_id TEXT UNIQUE, 
@@ -82,7 +83,7 @@ func (c *Client) initSchema() (err error) {
 					  role TEXT);`
 
 	createMrs := `CREATE TABLE IF NOT EXISTS mrs (
-  				    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+  				    id SERIAL PRIMARY KEY, 
 					url TEXT UNIQUE,
 					author_id INTEGER NOT NULL,
 					is_closed INTEGER DEFAULT 0,

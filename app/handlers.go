@@ -49,19 +49,8 @@ func (a *App) registerHandler(update tgbotapi.Update) (err error) {
 		}
 	}
 
-	if id, err := a.isUserRegister(user.TelegramUsername); err != nil {
-		user.ID = id
-	}
-
-	// because REPLACE function change user id in table
-	if user.ID != 0 {
-		if err := a.DB.UpdateUser(user); err != nil {
-			return err
-		}
-	} else {
-		if _, err = a.DB.SaveUser(user); err != nil {
-			return err
-		}
+	if _, err = a.DB.SaveUser(user); err != nil {
+		return err
 	}
 
 	return a.sendTgMessage(success)

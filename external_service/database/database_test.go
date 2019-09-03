@@ -12,7 +12,8 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
-)
+	"github.com/DATA-DOG/go-txdb"
+	)
 
 const (
 	driver = "sqlite3"
@@ -190,4 +191,12 @@ func isContain(s []int, e int) bool {
 		}
 	}
 	return false
+}
+
+func initTxDBDriver(cfg DbConfig) {
+	txDbEngine := th.String()
+
+	txdb.Register(txDbEngine, cfg.DriverName, cfg.DSN)
+
+	cfg.Engine = txDbEngine
 }

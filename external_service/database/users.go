@@ -12,7 +12,9 @@ import (
 
 func (c *Client) SaveUser(u models.User) (int, error) {
 	q := `INSERT INTO  users (telegram_id, telegram_username, gitlab_id, jira_id, is_active, role)
-		  VALUES (?, ?, ?, ?, ?, ?)`
+		  VALUES (?, ?, ?, ?, ?, ?)
+		  ON CONFLICT ON CONSTRAINT users_telegram_username_key
+		  DO UPDATE SET telegram_id = ?, role = ?`
 	res, err := c.db.Exec(q, u.TelegramID, u.TelegramUsername, u.GitlabID, u.JiraID, u.IsActive, u.Role)
 	if err != nil {
 		err = ce.WrapWithLog(err, ce.ErrCreateUser.Error())

@@ -16,7 +16,7 @@ import (
 
 const (
 	driver  = "postgres"
-	connURL = "postgres://tgj_bot_user:tgj_bot_user@127.0.0.1/tgj_bot_db?sslmode=disable"
+	connURL = "postgres://tgj_bot_user:tgj_bot_user@postgres/tgj_bot_db?sslmode=disable"
 )
 
 var ctx = context.Background()

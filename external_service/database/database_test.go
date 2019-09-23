@@ -1,23 +1,25 @@
 package database
 
 import (
-	"database/sql"
-	"os"
+	"context"
 	"testing"
 	"time"
 
+	"tgj-bot/fixtures"
 	"tgj-bot/th"
 
 	"tgj-bot/models"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 )
 
 const (
-	driver = "sqlite3"
-	dsn    = "./tgj_test.db"
+	driver  = "postgres"
+	connURL = "postgres://tgj_bot_user:tgj_bot_user@postgres/tgj_bot_db?sslmode=disable"
 )
+
+var ctx = context.Background()
 
 func TestClient_Dummy(t *testing.T) {
 	f := newFixture(t)
@@ -31,10 +33,12 @@ type fixture struct {
 
 func newFixture(t *testing.T) *fixture {
 
-	db, err := sql.Open(driver, dsn)
-	assert.NoError(t, err)
-	f := &fixture{Client:
-	Client{db: db},
+	db := fixtures.New(t, driver, connURL).DB
+	assert.NoError(t, db.Ping())
+	f := &fixture{
+		Client: Client{
+			db: db,
+		},
 		T: t,
 	}
 	assert.NoError(t, f.initSchema())
@@ -43,7 +47,6 @@ func newFixture(t *testing.T) *fixture {
 
 func (f *fixture) finish() {
 	f.Close()
-	assert.NoError(f.T, os.Remove(dsn))
 }
 
 func (f *fixture) createUser() models.User {
@@ -52,7 +55,7 @@ func (f *fixture) createUser() models.User {
 
 func (f *fixture) createUsersN(n int) []models.User {
 	q := `INSERT INTO users (telegram_id, telegram_username, gitlab_id, jira_id, is_active, role)
-		  VALUES (?, ?, ?, ?, ?, ?)`
+		  VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
 	us := make([]models.User, n, n)
 	for i := 0; i < n; i++ {
 		u := models.User{
@@ -65,10 +68,7 @@ func (f *fixture) createUsersN(n int) []models.User {
 			JiraID:   th.String(),
 			IsActive: true,
 		}
-		res, err := f.db.Exec(q, u.TelegramID, u.TelegramUsername, u.GitlabID, u.JiraID, u.IsActive, u.Role)
-		assert.NoError(f.T, err)
-		id, err := res.LastInsertId()
-		u.ID = int(id)
+		assert.NoError(f.T, f.db.QueryRow(q, u.TelegramID, u.TelegramUsername, u.GitlabID, u.JiraID, u.IsActive, u.Role).Scan(&u.ID))
 		us[i] = u
 	}
 	return us
@@ -79,7 +79,7 @@ func (f *fixture) getUser(tgUsername string) models.User {
 }
 
 func (f *fixture) getUsers(tgUsername ...string) models.UserList {
-	q := `SELECT id, telegram_id, telegram_username, gitlab_id, jira_id, is_active, role FROM users WHERE telegram_username = ?`
+	q := `SELECT id, telegram_id, telegram_username, gitlab_id, jira_id, is_active, role FROM users WHERE telegram_username = $1`
 	n := len(tgUsername)
 	us := make([]models.User, n, n)
 	u := models.User{}
@@ -95,26 +95,21 @@ func (f *fixture) createMR(authorID int) models.MR {
 }
 
 func (f *fixture) createMRs(authorID, n int) []models.MR {
-	q := `INSERT INTO mrs (url, author_id) VALUES (?, ?)`
+	q := `INSERT INTO mrs (url, author_id) VALUES ($1, $2) RETURNING id`
 	mrs := make([]models.MR, n, n)
 	for i := 0; i < n; i++ {
 		mr := models.MR{
 			URL:      th.String(),
 			AuthorID: authorID,
 		}
-		res, err := f.db.Exec(q, mr.URL, mr.AuthorID)
-		assert.NoError(f.T, err)
-
-		id, err := res.LastInsertId()
-		assert.NoError(f.T, err)
-		mr.ID = int(id)
+		assert.NoError(f.T, f.db.QueryRow(q, mr.URL, mr.AuthorID).Scan(&mr.ID))
 		mrs[i] = mr
 	}
 	return mrs
 }
 
 func (f *fixture) closeMR(id int) {
-	q := `UPDATE mrs SET is_closed = TRUE WHERE id = ?`
+	q := `UPDATE mrs SET is_closed = TRUE WHERE id = $1`
 	_, err := f.db.Exec(q, id)
 	assert.NoError(f.T, err)
 }
@@ -124,7 +119,7 @@ func (f *fixture) getMR(url string) models.MR {
 }
 
 func (f *fixture) getMRs(urls ...string) []models.MR {
-	q := `SELECT id, url, author_id, is_closed FROM main.mrs WHERE url = ?`
+	q := `SELECT id, url, author_id, is_closed FROM mrs WHERE url = $1`
 	n := len(urls)
 	mrs := make([]models.MR, n, n)
 	mr := models.MR{}
@@ -137,7 +132,7 @@ func (f *fixture) getMRs(urls ...string) []models.MR {
 
 // map [userID][]mrIDs
 func (f *fixture) createReviews(reviews map[int][]int) []models.Review {
-	q := `INSERT INTO reviews (mr_id, user_id, updated_at) VALUES (?, ?, ?)`
+	q := `INSERT INTO reviews (mr_id, user_id, updated_at) VALUES ($1, $2, $3)`
 
 	rvs := make([]models.Review, 0)
 	for u, mrs := range reviews {
@@ -156,7 +151,7 @@ func (f *fixture) createReviews(reviews map[int][]int) []models.Review {
 }
 
 func (f *fixture) getReviewsByMR(mrID int) (rs []models.Review) {
-	q := `SELECT mr_id, user_id, is_approved, is_commented, updated_at FROM reviews WHERE mr_id = ?`
+	q := `SELECT mr_id, user_id, is_approved, is_commented, updated_at FROM reviews WHERE mr_id = $1`
 	rows, err := f.db.Query(q, mrID)
 	assert.NoError(f.T, err)
 	defer rows.Close()
@@ -170,7 +165,7 @@ func (f *fixture) getReviewsByMR(mrID int) (rs []models.Review) {
 }
 
 func (f *fixture) getReviewsByUser(uID int) (rs []models.Review) {
-	q := `SELECT mr_id, user_id, is_approved, is_commented, updated_at FROM reviews WHERE user_id = ?`
+	q := `SELECT mr_id, user_id, is_approved, is_commented, updated_at FROM reviews WHERE user_id = $1`
 	rows, err := f.db.Query(q, uID)
 	assert.NoError(f.T, err)
 	defer rows.Close()

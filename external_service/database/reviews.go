@@ -7,7 +7,7 @@ import (
 )
 
 func (c *Client) SaveReview(r models.Review) (err error) {
-	q := `INSERT INTO reviews (mr_id, user_id, updated_at) VALUES (?, ?, ?)`
+	q := `INSERT INTO reviews (mr_id, user_id, updated_at) VALUES ($1, $2, $3)`
 	_, err = c.db.Exec(q, r.MrID, r.UserID, r.UpdatedAt)
 	if err != nil {
 		err = ce.WrapWithLog(err, ce.ErrCreateUser.Error())
@@ -19,10 +19,10 @@ func (c *Client) SaveReview(r models.Review) (err error) {
 
 func (c *Client) UpdateReviewApprove(r models.Review) error {
 	q := `UPDATE reviews 
-			SET is_approved = ?,
-				updated_at = ?
-		  WHERE user_id = ? 
-  			AND mr_id = ?`
+			SET is_approved = $1,
+				updated_at = $2
+		  WHERE user_id = $3 
+  			AND mr_id = $4`
 	_, err := c.db.Exec(q, r.IsApproved, r.UpdatedAt, r.UserID, r.MrID)
 	if err != nil {
 		err = ce.WrapWithLog(err, "update review approve")
@@ -34,10 +34,10 @@ func (c *Client) UpdateReviewApprove(r models.Review) error {
 
 func (c *Client) UpdateReviewComment(r models.Review) (err error) {
 	q := `UPDATE reviews 
-			SET is_commented = ?,
-				updated_at = ?
-		  WHERE user_id = ? 
-  			AND mr_id = ?`
+			SET is_commented = $1,
+				updated_at = $2
+		  WHERE user_id = $3
+  			AND mr_id = $4`
 	_, err = c.db.Exec(q, r.IsCommented, r.UpdatedAt, r.UserID, r.MrID)
 	if err != nil {
 		err = ce.WrapWithLog(err, "update review comment")
@@ -47,7 +47,7 @@ func (c *Client) UpdateReviewComment(r models.Review) (err error) {
 }
 
 func (c *Client) GetReviewMRsByUserID(uID int) (ids []int, err error) {
-	q := `SELECT mr_id FROM reviews WHERE is_approved = FALSE AND user_id = ?`
+	q := `SELECT mr_id FROM reviews WHERE is_approved = FALSE AND user_id = $1`
 	rows, err := c.db.Query(q, uID)
 	if err != nil {
 		err = ce.WrapWithLog(err, "get user review mrs")
@@ -66,7 +66,7 @@ func (c *Client) GetReviewMRsByUserID(uID int) (ids []int, err error) {
 }
 
 func (c *Client) DeleteReview(r models.Review) (err error) {
-	q := `DELETE FROM reviews WHERE mr_id = ? AND user_id = ?`
+	q := `DELETE FROM reviews WHERE mr_id = $1 AND user_id = $2`
 	_, err = c.db.Exec(q, r.MrID, r.UserID)
 	if err != nil {
 		err = ce.WrapWithLog(err, "delete user review")
@@ -78,7 +78,7 @@ func (c *Client) GetOpenedReviewsByUserID(uID int) (rs []models.Review, err erro
 	q := `SELECT mr_id, user_id, is_commented, updated_at 
 		  FROM reviews
 		  JOIN mrs m on reviews.mr_id = m.id
-		  WHERE user_id = ? 
+		  WHERE user_id = $1 
 		    AND is_approved = FALSE
 		    AND m.is_closed = FALSE`
 	rows, err := c.db.Query(q, uID)

@@ -10,8 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
-
 func TestClient_SaveUser(t *testing.T) {
 	t.Run("should create user", func(t *testing.T) {
 		f := newFixture(t)
@@ -30,21 +28,10 @@ func TestClient_SaveUser(t *testing.T) {
 		u.ID, err = f.SaveUser(u)
 		assert.NoError(t, err)
 
+
 		actU := f.getUser(u.TelegramUsername)
 		assert.Equal(t, u, actU)
 	})
-}
-
-func TestClient_UpdateUser(t *testing.T) {
-	f := newFixture(t)
-	defer f.finish()
-	u := f.createUser()
-	u.TelegramUsername = "new name"
-
-	assert.NoError(t, f.UpdateUser(u))
-	actU := f.getUser(u.TelegramUsername)
-
-	assert.Equal(t, u, actU)
 }
 
 func TestClient_ChangeIsActiveUser(t *testing.T) {

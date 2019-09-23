@@ -7,7 +7,7 @@ import (
 	ce "tgj-bot/custom_errors"
 	"tgj-bot/models"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 )
 
 type Database interface {
@@ -16,7 +16,6 @@ type Database interface {
 
 type UserRepository interface {
 	SaveUser(u models.User) (int, error)
-	UpdateUser(u models.User) error
 	ChangeIsActiveUser(telegramUsername string, isActive bool) (err error)
 	GetUsersWithPayload(exceptTelegramID string) (ups models.UsersPayload, err error)
 	GetUserByTgUsername(tgUname string) (u models.User, err error)
@@ -72,33 +71,41 @@ func RunDB(cfg DbConfig) (dbClient Client, err error) {
 }
 
 func (c *Client) initSchema() (err error) {
+
+	dropSchema := `DROP SCHEMA IF EXISTS tgj_bot cascade;`
+	createSchema := `CREATE SCHEMA IF NOT EXISTS tgj_bot AUTHORIZATION tgj_bot_user;`
+
+	setupSchema := `ALTER ROLE tgj_bot_user SET search_path TO tgj_bot;`
+
+	setupRole := `GRANT USAGE ON SCHEMA tgj_bot TO tgj_bot_user;`
+
 	createUsers := `CREATE TABLE IF NOT EXISTS users (
-					  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+					  id SERIAL PRIMARY KEY, 
 					  telegram_id TEXT UNIQUE,
 					  telegram_username TEXT UNIQUE,
 					  gitlab_id TEXT UNIQUE, 
 					  jira_id TEXT, 
-					  is_active INTEGER, 
+					  is_active BOOLEAN, 
 					  role TEXT);`
 
 	createMrs := `CREATE TABLE IF NOT EXISTS mrs (
-  				    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+  				    id SERIAL PRIMARY KEY, 
 					url TEXT UNIQUE,
 					author_id INTEGER NOT NULL,
-					is_closed INTEGER DEFAULT 0,
+					is_closed BOOLEAN DEFAULT FALSE,
 					FOREIGN KEY(author_id) REFERENCES users(id));`
 
 	createReviews := `CREATE TABLE IF NOT EXISTS reviews (
 					    mr_id INTEGER NOT NULL,
 					    user_id INTEGER NOT NULL,
-					    is_approved INTEGER DEFAULT 0,
-					    is_commented INTEGER DEFAULT 0,
-					    updated_at INTEGER,
+					    is_approved BOOLEAN DEFAULT FALSE,
+					    is_commented BOOLEAN DEFAULT FALSE,
+					    updated_at BIGINT,
 					    PRIMARY KEY (mr_id, user_id),
 					    FOREIGN KEY(mr_id) REFERENCES mrs(id),
 					    FOREIGN KEY(user_id) REFERENCES users(id));`
 
-	_, err = c.db.Exec(createUsers + createMrs + createReviews)
+	_, err = c.db.Exec(dropSchema + createSchema  + setupSchema + setupRole + createUsers + createMrs + createReviews)
 	if err != nil {
 		err = ce.WrapWithLog(err, "create tables")
 		return

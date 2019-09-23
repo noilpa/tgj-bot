@@ -1,8 +1,8 @@
 FROM golang:1.12-alpine AS build
 
-RUN apk add --no-cache git gcc musl-dev sqlite
+RUN apk add --no-cache git gcc musl-dev sqlite &&
+    mkdir /app
 WORKDIR /src
-RUN mkdir /app
 COPY go.mod .
 COPY go.sum .
 RUN go mod download

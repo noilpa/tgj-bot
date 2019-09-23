@@ -12,35 +12,20 @@ import (
 
 func (c *Client) SaveUser(u models.User) (int, error) {
 	q := `INSERT INTO  users (telegram_id, telegram_username, gitlab_id, jira_id, is_active, role)
-		  VALUES (?, ?, ?, ?, ?, ?)`
-	res, err := c.db.Exec(q, u.TelegramID, u.TelegramUsername, u.GitlabID, u.JiraID, u.IsActive, u.Role)
+		  VALUES ($1, $2, $3, $4, $5, $6)
+		  ON CONFLICT ON CONSTRAINT users_telegram_username_key
+		  DO UPDATE SET telegram_id = $1, role = $6
+		  RETURNING id`
+	err := c.db.QueryRow(q, u.TelegramID, u.TelegramUsername, u.GitlabID, u.JiraID, u.IsActive, u.Role).Scan(&u.ID)
 	if err != nil {
 		err = ce.WrapWithLog(err, ce.ErrCreateUser.Error())
 		return 0, err
 	}
-	id, err := res.LastInsertId()
-	if err != nil {
-		err = ce.WrapWithLog(err, ce.ErrCreateUser.Error())
-		return 0, err
-	}
-
-	return int(id), nil
-}
-
-func (c *Client) UpdateUser(u models.User) error {
-	q := `REPLACE INTO  users (id, telegram_id, telegram_username, gitlab_id, jira_id, is_active, role)
-		  VALUES (?, ?, ?, ?, ?, ?, ?)`
-	_, err := c.db.Exec(q, u.ID, u.TelegramID, u.TelegramUsername, u.GitlabID, u.JiraID, u.IsActive, u.Role)
-
-	if err != nil {
-		err = ce.WrapWithLog(err, ce.ErrCreateUser.Error())
-		return err
-	}
-	return nil
+	return u.ID, nil
 }
 
 func (c *Client) ChangeIsActiveUser(telegramUsername string, isActive bool) (err error) {
-	q := `UPDATE users SET is_active = ? WHERE telegram_username = ?`
+	q := `UPDATE users SET is_active = $1 WHERE telegram_username = $2`
 	_, err = c.db.Exec(q, isActive, telegramUsername)
 	if err != nil {
 		err = ce.WrapWithLog(err, ce.ErrChangeUserActivity.Error())
@@ -58,7 +43,7 @@ func (c *Client) GetUsersWithPayload(exceptTelegramID string) (ups models.UsersP
                   WHERE r.user_id = id
                     AND r.is_approved = FALSE) AS payload
           FROM users
-		  WHERE telegram_id != ?
+		  WHERE telegram_id != $1
 			AND is_active = TRUE
 		  ORDER BY payload;`
 
@@ -83,7 +68,7 @@ func (c *Client) GetUsersWithPayload(exceptTelegramID string) (ups models.UsersP
 func (c *Client) GetUserByTgUsername(tgUname string) (u models.User, err error) {
 	q := `SELECT id, telegram_id, telegram_username, gitlab_id, jira_id, is_active, role 
 		  FROM users 
-          WHERE telegram_username = ?`
+          WHERE telegram_username = $1`
 	err = c.db.QueryRow(q, tgUname).Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.GitlabID, &u.JiraID, &u.IsActive, &u.Role)
 	if err != nil {
 		err = ce.WrapWithLog(err, "get user by telegram username")
@@ -105,7 +90,7 @@ func (c *Client) GetUserByGitlabID(id interface{}) (u models.User, err error) {
 
 	q := `SELECT id, telegram_id, telegram_username, gitlab_id, jira_id, is_active, role 
 		  FROM users 
-          WHERE gitlab_id = ?`
+          WHERE gitlab_id = $1`
 	err = c.db.QueryRow(q, id).Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.GitlabID, &u.JiraID, &u.IsActive, &u.Role)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -124,7 +109,7 @@ func (c *Client) GetUsersByMrID(id int) (us []models.UserBrief, err error) {
 		  WHERE is_active = TRUE 
 		    AND id IN (SELECT user_id 
 		    		  FROM reviews 
-		    		  WHERE mr_id = ?)`
+		    		  WHERE mr_id = $1)`
 	rows, err := c.db.Query(q, id)
 	if err != nil {
 		err = ce.WrapWithLog(err, "get users by mr id")
@@ -150,7 +135,7 @@ func (c *Client) GetUsersByMrURL(url string) (us []models.UserBrief, err error) 
 		  			   FROM reviews 
 		  			   WHERE mr_id = (SELECT id 
 		  			   				  FROM mrs 
-		  			   				  WHERE url = ?))`
+		  			   				  WHERE url = $1))`
 	rows, err := c.db.Query(q, url)
 	if err != nil {
 		err = ce.WrapWithLog(err, "get users by mr url")
@@ -181,16 +166,16 @@ func (c *Client) GetUserForReallocateMR(u models.UserBrief, mID int) (up models.
                     AND r.is_approved = FALSE) AS payload
           FROM users
           WHERE is_active = TRUE 
-            AND role = ?
-            AND id != ?
+            AND role = $1
+            AND id != $2
             AND id NOT IN (SELECT user_id 
             			   FROM reviews 
-            			   WHERE mr_id = ? 
-            			     AND user_id != ?)
+            			   WHERE mr_id = $3 
+            			     AND user_id != $2)
 		  ORDER BY payload
 		  LIMIT 1;`
 
-	err = c.db.QueryRow(q, u.Role, u.ID, mID, u.ID).Scan(&up.ID, &up.TelegramID, &up.TelegramUsername, &up.Role, &up.Payload)
+	err = c.db.QueryRow(q, u.Role, u.ID, mID).Scan(&up.ID, &up.TelegramID, &up.TelegramUsername, &up.Role, &up.Payload)
 	if err != nil {
 		err = ce.WrapWithLog(err, "get user for reallocate mr")
 		return

@@ -3,9 +3,9 @@ image: golang:1.12-alpine
 variables:
   DOCKER_REGISTRY: registry.itv.restr.im:5000
   IMAGE_DIR: new-cache/tgj-bot
-  POSTGRES_USER: tgj_bot_user_test
-  POSTGRES_PASSWORD: tgj_bot_user_test
-  POSTGRES_DB: tgj_bot_db_test
+  POSTGRES_USER: tgj_bot_user
+  POSTGRES_PASSWORD: tgj_bot_user
+  POSTGRES_DB: tgj_bot_db
 
 
 before_script:

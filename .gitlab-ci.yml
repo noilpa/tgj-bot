@@ -6,6 +6,7 @@ variables:
   POSTGRES_USER: tgj_bot_user
   POSTGRES_PASSWORD: tgj_bot_user
   POSTGRES_DB: tgj_bot_db
+  DOCKER_TLS_CERTDIR: ''
 
 
 before_script:

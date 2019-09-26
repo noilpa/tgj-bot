@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"os"
 
 	ce "tgj-bot/custom_errors"
 	"tgj-bot/models"
@@ -46,7 +45,6 @@ type ReviewRepository interface {
 type DbConfig struct {
 	DriverName        string `json:"driver"`
 	DSN               string `json:"dsn"`
-	IsNeedRemoveOldDB bool   `json:"is_need_remove_old_db"`
 }
 
 type Client struct {
@@ -54,13 +52,13 @@ type Client struct {
 }
 
 func RunDB(cfg DbConfig) (dbClient Client, err error) {
-	if cfg.IsNeedRemoveOldDB {
-		// ignore err if file doesn't exist
-		os.Remove(cfg.DSN)
-	}
 	dbClient.db, err = sql.Open(cfg.DriverName, cfg.DSN)
 	if err != nil {
 		err = ce.WrapWithLog(err, "DB client err")
+		return
+	}
+	if err = dbClient.db.Ping(); err != nil {
+		err = ce.WrapWithLog(err, "DB ping err")
 		return
 	}
 	if err = dbClient.initSchema(); err != nil {

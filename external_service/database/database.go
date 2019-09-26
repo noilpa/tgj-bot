@@ -70,13 +70,6 @@ func RunDB(cfg DbConfig) (dbClient Client, err error) {
 
 func (c *Client) initSchema() (err error) {
 
-	dropSchema := `DROP SCHEMA IF EXISTS tgj_bot cascade;`
-	createSchema := `CREATE SCHEMA IF NOT EXISTS tgj_bot AUTHORIZATION tgj_bot_user;`
-
-	setupSchema := `ALTER ROLE tgj_bot_user SET search_path TO tgj_bot;`
-
-	setupRole := `GRANT USAGE ON SCHEMA tgj_bot TO tgj_bot_user;`
-
 	createUsers := `CREATE TABLE IF NOT EXISTS users (
 					  id SERIAL PRIMARY KEY, 
 					  telegram_id TEXT UNIQUE,
@@ -103,7 +96,7 @@ func (c *Client) initSchema() (err error) {
 					    FOREIGN KEY(mr_id) REFERENCES mrs(id),
 					    FOREIGN KEY(user_id) REFERENCES users(id));`
 
-	_, err = c.db.Exec(dropSchema + createSchema  + setupSchema + setupRole + createUsers + createMrs + createReviews)
+	_, err = c.db.Exec(createUsers + createMrs + createReviews)
 	if err != nil {
 		err = ce.WrapWithLog(err, "create tables")
 		return

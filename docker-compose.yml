@@ -1,14 +1,14 @@
-version: '3'
+version: '3.7'
 services:
   bot:
-    build: .
-    volumes:
-      - ./db:/db
-      - ./conf:/conf
-    links:
-      - db
+    image: registry.itv.restr.im:5000/new-cache/tgj-bot:latest
+    configs:
+      - source: conf
+        target: /conf/conf.json
     depends_on:
       - db
+    deploy:
+      replicas: 1
   db:
     image: postgres:10.7-alpine
     environment:
@@ -17,3 +17,8 @@ services:
       POSTGRES_PASSWORD: tgj_bot_user
     ports:
       - 5432:5432
+    deploy:
+      replicas: 1
+configs:
+  conf:
+    external: true

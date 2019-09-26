@@ -53,7 +53,7 @@ func (c *Client) CloseMRs() error {
 func (c *Client) CloseMR(id int) error {
 	q := `UPDATE mrs SET is_closed=True
 		  WHERE  id = $1`
-	_, err := c.db.Exec(q)
+	_, err := c.db.Exec(q, id)
 	if err != nil {
 		err = ce.WrapWithLog(ce.ErrCloseMRs, err.Error())
 		return err

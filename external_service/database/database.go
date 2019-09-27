@@ -43,8 +43,8 @@ type ReviewRepository interface {
 }
 
 type DbConfig struct {
-	DriverName        string `json:"driver"`
-	DSN               string `json:"dsn"`
+	DriverName string `json:"driver"`
+	DSN        string `json:"dsn"`
 }
 
 type Client struct {
@@ -70,7 +70,7 @@ func RunDB(cfg DbConfig) (dbClient Client, err error) {
 
 func (c *Client) initSchema() (err error) {
 
-	createUsers := `CREATE TABLE IF NOT EXISTS users (
+	createUsers := `CREATE TABLE IF NOT EXISTS public.users (
 					  id SERIAL PRIMARY KEY, 
 					  telegram_id TEXT UNIQUE,
 					  telegram_username TEXT UNIQUE,
@@ -79,14 +79,14 @@ func (c *Client) initSchema() (err error) {
 					  is_active BOOLEAN, 
 					  role TEXT);`
 
-	createMrs := `CREATE TABLE IF NOT EXISTS mrs (
+	createMrs := `CREATE TABLE IF NOT EXISTS public.mrs (
   				    id SERIAL PRIMARY KEY, 
 					url TEXT UNIQUE,
 					author_id INTEGER NOT NULL,
 					is_closed BOOLEAN DEFAULT FALSE,
 					FOREIGN KEY(author_id) REFERENCES users(id));`
 
-	createReviews := `CREATE TABLE IF NOT EXISTS reviews (
+	createReviews := `CREATE TABLE IF NOT EXISTS public.reviews (
 					    mr_id INTEGER NOT NULL,
 					    user_id INTEGER NOT NULL,
 					    is_approved BOOLEAN DEFAULT FALSE,

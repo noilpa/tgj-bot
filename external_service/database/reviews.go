@@ -7,7 +7,9 @@ import (
 )
 
 func (c *Client) SaveReview(r models.Review) (err error) {
-	q := `INSERT INTO reviews (mr_id, user_id, updated_at) VALUES ($1, $2, $3)`
+	q := `INSERT INTO reviews (mr_id, user_id, updated_at) VALUES ($1, $2, $3)
+		  ON CONFLICT ON CONSTRAINT reviews_pkey
+		  DO UPDATE SET user_id = $2, updated_at = $3`
 	_, err = c.db.Exec(q, r.MrID, r.UserID, r.UpdatedAt)
 	if err != nil {
 		err = ce.WrapWithLog(err, ce.ErrCreateUser.Error())

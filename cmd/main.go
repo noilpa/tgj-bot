@@ -24,7 +24,7 @@ func main() {
 		log.Printf("arg config path: %s", os.Args[1])
 
 	} else {
-		app.Config, err = readConfig("../conf/test_conf.json")
+		app.Config, err = readConfig("../conf/conf.json")
 	}
 	if err != nil {
 		log.Println("config not found")
@@ -43,8 +43,14 @@ func main() {
 	defer app.DB.Close()
 
 	app.Gitlab, err = gitlab_.RunGitlab(app.Config.Gl)
+	if err != nil {
+		log.Panic(err)
+	}
 
 	err = app.Serve()
+	if err != nil {
+		log.Panic(err)
+	}
 	log.Print("I'll be back...")
 }
 

@@ -7,6 +7,7 @@ import (
 type UserBrief struct {
 	ID               int
 	TelegramID       string
+	// always lowercase
 	TelegramUsername string
 	Role             Role
 }
@@ -66,7 +67,7 @@ func IsValidRole(r Role) bool {
 type MR struct {
 	ID       int
 	URL      string
-	AuthorID int
+	AuthorID *int
 	IsClosed bool
 }
 

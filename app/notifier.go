@@ -57,12 +57,15 @@ func (a *App) notify() {
 						break
 					}
 					log.Println(a.sendTgMessage(greeting))
+					log.Printf("Notifier active users %v", us)
+
 					for _, u := range us {
 						mrStr, err := a.buildNotifierMRString(u.ID)
 						if err != nil {
 							log.Println(ce.Wrap(err, "notifier update reviews"))
 							break
 						}
+						log.Printf("Notifier MR string for user %d: %v\n", u.ID, mrStr)
 
 						if mrStr != "" {
 							msg := fmt.Sprintf("@%s %s\n%s\n", u.TelegramUsername, randEmoji(), cutoff)
@@ -93,6 +96,7 @@ func (a *App) buildNotifierMRString(uID int) (s string, err error) {
 		err = ce.WrapWithLog(err, "notifier build message")
 		return
 	}
+	log.Printf("User %d opened reviews: %v\n", uID, rs)
 
 	for i, r := range rs {
 		if time.Now().Unix() > r.UpdatedAt+a.Config.Notifier.Delay {

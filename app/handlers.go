@@ -33,7 +33,7 @@ func (a *App) registerHandler(update tgbotapi.Update) (err error) {
 	user := models.User{
 		UserBrief: models.UserBrief{
 			TelegramID:       strconv.Itoa(update.Message.From.ID),
-			TelegramUsername: update.Message.From.UserName,
+			TelegramUsername: strings.ToLower(update.Message.From.UserName),
 			Role:             models.Developer,
 		},
 		GitlabID: args[0],
@@ -129,7 +129,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 		return
 	}
 
-	users, err := a.DB.GetUsersWithPayload(strconv.Itoa(author.ID))
+	users, err := a.DB.GetUsersWithPayload(author.TelegramID)
 	if err != nil {
 		log.Printf("getting users failed: %v", err)
 		return errors.New("getting users failed")
@@ -146,7 +146,10 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 
 	mr := models.MR{
 		URL:      mrUrl,
-		AuthorID: author.ID,
+		AuthorID: &author.ID,
+	}
+	if *mr.AuthorID == 0 {
+		mr.AuthorID = nil
 	}
 	mr, err = a.DB.SaveMR(mr)
 	if err != nil {
@@ -166,7 +169,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 		msg += fmt.Sprintf("@%v\n", r.TelegramUsername)
 	}
 
-	msg += "%v\nreview please"
+	msg += "review please"
 
 	return a.sendTgMessage(msg)
 }
@@ -268,31 +271,29 @@ func (a *App) reallocateUserMRs(u models.User) (err error) {
 	if err != nil {
 		return err
 	}
+	log.Printf("Reallocate MRs for %s: %v\n", u.TelegramUsername, mrsID)
+	// continue on error in the hope of the best
 	for _, mrID := range mrsID {
 		user, err := a.DB.GetUserForReallocateMR(u.UserBrief, mrID)
 		if err != nil {
-			return err
+			log.Println(ce.Wrap(err, "Reallocate MRs"))
+			continue
 		}
-		// create new review
+		// update review
 		if err = a.DB.SaveReview(models.Review{
 			MrID:      mrID,
 			UserID:    user.ID,
 			UpdatedAt: time.Now().Unix(),
 		}); err != nil {
-			return err
-		}
-		// clean up old review
-		if err = a.DB.DeleteReview(models.Review{
-			MrID:   mrID,
-			UserID: u.ID,
-		}); err != nil {
-			return err
+			log.Println(ce.Wrap(err, "Reallocate MRs"))
+			continue
 		}
 		mr, err := a.DB.GetMrByID(mrID)
 		if err != nil {
-			return err
+			log.Println(ce.Wrap(err, "Reallocate MRs"))
+			continue
 		}
-		return a.sendTgMessage(fmt.Sprintf("New review: %v , @%s", mr.URL, user.TelegramUsername))
+		log.Println(ce.Wrap(a.sendTgMessage(fmt.Sprintf("New review: %v , @%s", mr.URL, user.TelegramUsername)), "Reallocate MRs"))
 	}
 	return nil
 }

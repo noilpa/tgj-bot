@@ -1,6 +1,9 @@
 package gitlab_
 
 import (
+	"log"
+
+	"github.com/davecgh/go-spew/spew"
 	"github.com/xanzy/go-gitlab"
 )
 
@@ -34,10 +37,11 @@ func RunGitlab(cfg GitlabConfig) (client Client, err error) {
 	if err = client.Gitlab.SetBaseURL("https://git.itv.restr.im/"); err != nil {
 		return
 	}
+	log.Printf("Gitlab BaseURL: %v", client.Gitlab.BaseURL().String())
 	if client.Project, _, err = client.Gitlab.Projects.GetProject(cfg.ProjectID, nil); err != nil {
 		return
 	}
-
+	log.Printf("Gitlab Project: %v", client.Project.String())
 	return
 }
 
@@ -81,6 +85,7 @@ func (c *Client) CheckMrComments(mrID int) (users map[int]struct{}, err error) {
 }
 
 func (c *Client) GetMrAuthorID(mrID int) (int, error) {
+	spew.Dump(c)
 	mr, _, err := c.Gitlab.MergeRequests.GetMergeRequest(c.Project.ID, mrID, nil)
 	if err != nil {
 		return 0, err
@@ -93,5 +98,6 @@ func (c *Client) MrIsOpen(mrID int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	log.Printf("Get MR from gitlab %d: %v\n", mrID, mr)
 	return mr.State == opened, nil
 }

@@ -16,7 +16,7 @@ func TestClient_SaveMR(t *testing.T) {
 		u := f.createUser()
 		mr := models.MR{
 			URL:      th.String(),
-			AuthorID: u.ID,
+			AuthorID: &u.ID,
 		}
 		mr, err := f.SaveMR(mr)
 		assert.NoError(t, err)
@@ -30,7 +30,7 @@ func TestClient_SaveMR(t *testing.T) {
 		u := f.createUser()
 		mr := models.MR{
 			URL:      th.String(),
-			AuthorID: u.ID,
+			AuthorID: &u.ID,
 		}
 		mr, err := f.SaveMR(mr)
 		assert.NoError(t, err)

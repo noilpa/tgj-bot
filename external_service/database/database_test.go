@@ -100,7 +100,7 @@ func (f *fixture) createMRs(authorID, n int) []models.MR {
 	for i := 0; i < n; i++ {
 		mr := models.MR{
 			URL:      th.String(),
-			AuthorID: authorID,
+			AuthorID: &authorID,
 		}
 		assert.NoError(f.T, f.db.QueryRow(q, mr.URL, mr.AuthorID).Scan(&mr.ID))
 		mrs[i] = mr

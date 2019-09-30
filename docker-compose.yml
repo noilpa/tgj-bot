@@ -16,7 +16,7 @@ services:
       POSTGRES_USER: tgj_bot_user
       POSTGRES_PASSWORD: tgj_bot_user
     volumes:
-      - /swarm/tgj-bot:/var/lib/postgresql/data
+      - /swarm/tgj-bot/pg:/var/lib/postgresql/data
     ports:
       - 5432:5432
     deploy:

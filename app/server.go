@@ -60,33 +60,34 @@ func (a *App) Serve() (err error) {
 			}
 		}
 		tgUsername := update.Message.From.UserName
-		if update.Message.IsCommand() {
-			switch command(update.Message.Command()) {
-			case helpCmd:
-				err = a.helpHandler()
-			case registerCmd:
-				err = a.registerHandler(update)
-			case inactiveCmd:
-				if _, err = a.isUserRegister(tgUsername); err == nil {
-					err = a.isActiveHandler(update, false)
-				}
-			case activeCmd:
-				if _, err = a.isUserRegister(tgUsername); err == nil {
-					err = a.isActiveHandler(update, true)
-				}
-			case mrCmd:
-				if _, err = a.isUserRegister(tgUsername); err == nil {
-					err = a.mrHandler(update)
-				}
-			default:
-				err = a.helpHandler()
+		if !update.Message.IsCommand() {
+			continue
+		}
+		switch command(update.Message.Command()) {
+		case helpCmd:
+			err = a.helpHandler()
+		case registerCmd:
+			err = a.registerHandler(update)
+		case inactiveCmd:
+			if _, err = a.isUserRegister(tgUsername); err == nil {
+				err = a.isActiveHandler(update, false)
 			}
+		case activeCmd:
+			if _, err = a.isUserRegister(tgUsername); err == nil {
+				err = a.isActiveHandler(update, true)
+			}
+		case mrCmd:
+			if _, err = a.isUserRegister(tgUsername); err == nil {
+				err = a.mrHandler(update)
+			}
+		default:
+			err = a.helpHandler()
+		}
 
-			if err != nil {
-				// mb duplicate database logging
-				log.Print(err)
-				log.Println(a.sendTgMessage(err.Error()))
-			}
+		if err != nil {
+			// mb duplicate database logging
+			log.Print(err)
+			log.Println(a.sendTgMessage(err.Error()))
 		}
 	}
 	return

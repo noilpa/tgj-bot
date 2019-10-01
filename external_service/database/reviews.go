@@ -67,15 +67,6 @@ func (c *Client) GetReviewMRsByUserID(uID int) (ids []int, err error) {
 	return
 }
 
-func (c *Client) DeleteReview(r models.Review) (err error) {
-	q := `DELETE FROM reviews WHERE mr_id = $1 AND user_id = $2`
-	_, err = c.db.Exec(q, r.MrID, r.UserID)
-	if err != nil {
-		err = ce.WrapWithLog(err, "delete user review")
-	}
-	return
-}
-
 func (c *Client) GetOpenedReviewsByUserID(uID int) (rs []models.Review, err error) {
 	q := `SELECT mr_id, user_id, is_commented, updated_at 
 		  FROM reviews

@@ -15,9 +15,9 @@ func TestClient_SaveReview(t *testing.T) {
 	u := f.createUser()
 	mr := f.createMR(u.ID)
 	r := models.Review{
-		MrID:        mr.ID,
-		UserID:      u.ID,
-		UpdatedAt:   th.Int64(),
+		MrID:      mr.ID,
+		UserID:    u.ID,
+		UpdatedAt: th.Int64(),
 	}
 
 	assert.NoError(t, f.SaveReview(r))
@@ -83,20 +83,4 @@ func TestClient_GetUserReviewMRs(t *testing.T) {
 	for _, id := range ids {
 		assert.True(t, isContain(m0Arr, id))
 	}
-}
-
-func TestClient_DeleteReview(t *testing.T) {
-	f := newFixture(t)
-	defer f.finish()
-	u := f.createUser()
-	eMr := f.createMR(u.ID)
-
-	reviews := make(map[int][]int)
-	reviews[u.ID] = []int{eMr.ID}
-	r := f.createReviews(reviews)[0]
-
-	assert.NoError(t, f.DeleteReview(r))
-
-	rs := f.getReviewsByUser(u.ID)
-	assert.Nil(t, rs)
 }

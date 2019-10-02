@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -99,7 +98,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 	args := strings.Split(strings.ToLower(argsStr), " ")
 
 	mrUrl := args[0]
-	url_, err := url.Parse(mrUrl)
+	mrID, err := models.GetGitlabID(mrUrl)
 	if err != nil {
 		return
 	}
@@ -108,11 +107,6 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 		return a.returnMrParty(mrUrl)
 	}
 
-	pathArr := strings.Split(url_.Path, "/")
-	mrID, err := strconv.Atoi(pathArr[len(pathArr)-1])
-	if err != nil {
-		return
-	}
 	authorGitlabID, err := a.Gitlab.GetMrAuthorID(mrID)
 	if err != nil {
 		return
@@ -147,9 +141,6 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 	mr := models.MR{
 		URL:      mrUrl,
 		AuthorID: &author.ID,
-	}
-	if *mr.AuthorID == 0 {
-		mr.AuthorID = nil
 	}
 	mr, err = a.DB.SaveMR(mr)
 	if err != nil {
@@ -187,15 +178,21 @@ func (a *App) updateReviews() error {
 		return nil
 	}
 	for _, mr := range mrs {
-		mrIsOpen, err := a.Gitlab.MrIsOpen(mr.ID)
+		mr.GitlabID, err = models.GetGitlabID(mr.URL)
+		if err != nil {
+			ce.WrapWithLog(err, "Parse gitlab mr id")
+			continue
+		}
+		mrIsOpen, err := a.Gitlab.MrIsOpen(mr.GitlabID)
+		log.Printf("Update reviews mr_id=%d is_open=%v", mr.ID, mrIsOpen)
 		if !mrIsOpen {
-			return a.DB.CloseMR(mr.ID)
+			ce.WrapWithLog(a.DB.CloseMR(mr.ID), "close mr err")
 		}
-		if err = a.updateMrLikes(mr.ID); err != nil {
-			return err
+		if err = a.updateMrLikes(mr); err != nil {
+			ce.WrapWithLog(err, "update mr likes")
 		}
-		if err = a.updateMrComments(mr.ID); err != nil {
-			return err
+		if err = a.updateMrComments(mr); err != nil {
+			ce.WrapWithLog(err, "update mr comments")
 		}
 	}
 
@@ -206,55 +203,61 @@ func (a *App) updateReviews() error {
 	return nil
 }
 
-func (a *App) updateMrLikes(mID int) error {
-	usersID, err := a.Gitlab.CheckMrLikes(mID)
+func (a *App) updateMrLikes(mr models.MR) error {
+	usersID, err := a.Gitlab.CheckMrLikes(mr.GitlabID)
 	if err != nil {
 		return err
 	}
+	log.Printf("Check mr likes user's ids: %v", usersID)
 	for uID := range usersID {
 		u, err := a.DB.GetUserByGitlabID(uID)
 		if err != nil {
-			return err
+			ce.WrapWithLog(err, fmt.Sprintf("user not found by gitlab id=%d", uID))
+			continue
 		}
 
 		now := time.Now().Unix()
 		now = a.skipWeekends(now)
 
 		err = a.DB.UpdateReviewApprove(models.Review{
-			MrID:       mID,
+			MrID:       mr.ID,
 			UserID:     u.ID,
 			IsApproved: true,
 			UpdatedAt:  now,
 		})
 		if err != nil {
-			return err
+			ce.WrapWithLog(err, "Update review approve err")
+			continue
 		}
 	}
 	return nil
 }
 
-func (a *App) updateMrComments(mID int) error {
-	usersID, err := a.Gitlab.CheckMrComments(mID)
+func (a *App) updateMrComments(mr models.MR) error {
+	usersID, err := a.Gitlab.CheckMrComments(mr.GitlabID)
 	if err != nil {
 		return err
 	}
+	log.Printf("Check mr comments user's ids: %v", usersID)
 	for uID := range usersID {
 		u, err := a.DB.GetUserByGitlabID(uID)
 		if err != nil {
-			return err
+			ce.WrapWithLog(err, fmt.Sprintf("user not found by gitlab id=%d", uID))
+			continue
 		}
 
 		now := time.Now().Unix()
 		now = a.skipWeekends(now)
 
 		err = a.DB.UpdateReviewComment(models.Review{
-			MrID:        mID,
+			MrID:        mr.ID,
 			UserID:      u.ID,
 			IsCommented: true,
 			UpdatedAt:   now,
 		})
 		if err != nil {
-			return err
+			ce.WrapWithLog(err, "Update comment approve err")
+			continue
 		}
 	}
 	return nil

@@ -1,6 +1,7 @@
 package gitlab_
 
 import (
+	"io/ioutil"
 	"log"
 
 	"github.com/davecgh/go-spew/spew"
@@ -55,10 +56,14 @@ func RunGitlab(cfg GitlabConfig) (client Client, err error) {
 
 // return list of users with emoji on mr
 func (c *Client) CheckMrLikes(mrID int) (users map[int]struct{}, err error) {
-	emojies, _, err := c.Gitlab.AwardEmoji.ListMergeRequestAwardEmoji(c.Project.ID, mrID, nil)
+	emojies, resp, err := c.Gitlab.AwardEmoji.ListMergeRequestAwardEmoji(c.Project.ID, mrID, nil)
+	respBody, _ := ioutil.ReadAll(resp.Body)
+	log.Println("Emojies resp:", string(respBody))
 	if err != nil {
 		return
 	}
+	log.Println("Emojies:", emojies)
+
 	users = make(map[int]struct{})
 	for _, e := range emojies {
 		if _, found := users[e.User.ID]; !found {
@@ -71,10 +76,15 @@ func (c *Client) CheckMrLikes(mrID int) (users map[int]struct{}, err error) {
 // если есть открытые комметны то нотификацию получает хост МРа
 // return list of users with open comment flag
 func (c *Client) CheckMrComments(mrID int) (users map[int]struct{}, err error) {
-	comments, _, err := c.Gitlab.MergeRequests.GetIssuesClosedOnMerge(c.Project.ID, mrID, nil)
+	comments, resp, err := c.Gitlab.MergeRequests.GetIssuesClosedOnMerge(c.Project.ID, mrID, nil)
+	respBody, _ := ioutil.ReadAll(resp.Body)
+	log.Println("Comments resp:", string(respBody))
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
+	log.Println("Comments:", comments)
+
 	users = make(map[int]struct{})
 	for _, comment := range comments {
 		if _, found := users[comment.Author.ID]; !found {

@@ -17,10 +17,13 @@ const (
 )
 
 var (
-	point = []string{"🔹", "🔸"}
-	emoji = []string{"😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "☺", "️🙂", "🤗", "🤔", "😐",
+	pointEmoji = []string{"🔹", "🔸"}
+	sadEmoji   = []string{"😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "☺", "️🙂", "🤗", "🤔", "😐",
 		"😑", "😶", "🙄", "😏", "😣", "😥", "😮", "🤐", "😯", "😪", "😫", "😴", "😌", "😛", "😜", "😝", "🤤", "😒", "😓",
 		"😔", "😕", "🙃", "🤑", "😲", "☹", "️🙁", "😖", "😞", "😟", "😤", "😢", "😭", "😦", "😧", "😨", "😩"}
+	joyEmoji = []string{"😉", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "☺", "️😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "😘",
+		"😗", "😙", "😚", "😋", "😜", "😜", "😝", "😛", "🤑", "🤗", "😎", "🤡", "🤠", "😏", "👐", "😸", "😹", "👻", "😺", "🙌",
+		"👏", "🙏", "🤝", "👍", "👊", "✊", "🤞", "✌", "️🤘", "👈", "👉", "💪", "🤙", "👋", "🖖", "👑", "🌚", "🌝", "⭐", "️💫"}
 )
 
 func (a *App) notify() {
@@ -50,32 +53,32 @@ func (a *App) notify() {
 				// main logic
 				if err := a.updateReviews(); err != nil {
 					log.Println(ce.Wrap(err, "notifier update reviews"))
-					break
+					continue
 				}
 
 				us, err := a.DB.GetActiveUsers()
 				if err != nil {
 					log.Println(ce.Wrap(err, "notifier update reviews"))
-					break
+					continue
 				}
-				log.Println(a.sendTgMessage(greeting))
 				log.Printf("Notifier active users %v", us)
 
+				messagesCount := 0
+				msg := greeting + "\n"
 				for _, u := range us {
 					mrStr, err := a.buildNotifierMRString(u.ID)
 					if err != nil {
 						log.Println(ce.Wrap(err, "notifier update reviews"))
-						break
+						continue
 					}
 					log.Printf("Notifier MR string for user %d: %v\n", u.ID, mrStr)
 
 					if mrStr != "" {
-						msg := fmt.Sprintf("@%s %s\n%s\n", u.TelegramUsername, randEmoji(), cutoff)
-						msg += mrStr
-
-						log.Println(a.sendTgMessage(msg))
+						msg += fmt.Sprintf("%s\n@%s %s\n%s", cutoff, u.TelegramUsername, randSadEmoji(), mrStr)
+						messagesCount++
 					}
 				}
+				log.Println(a.sendTgMessage(msg))
 				isNotified = true
 			}
 		}
@@ -105,12 +108,16 @@ func (a *App) buildNotifierMRString(uID int) (s string, err error) {
 				err = ce.WrapWithLog(err, "notifier build message")
 				return s, err
 			}
-			s += fmt.Sprintf("%s %s\n", string(point[i%2]), mr.URL)
+			s += fmt.Sprintf("%s %s\n", pointEmoji[i%2], mr.URL)
 		}
 	}
 	return
 }
 
-func randEmoji() string {
-	return emoji[rand.Intn(len(emoji))]
+func randSadEmoji() string {
+	return sadEmoji[rand.Intn(len(sadEmoji))]
+}
+
+func randJoyEmoji() string {
+	return joyEmoji[rand.Intn(len(joyEmoji))]
 }

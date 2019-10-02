@@ -38,7 +38,7 @@ func (c *Client) GetOpenedMRs() (mrs []models.MR, err error) {
 
 func (c *Client) CloseMRs() error {
 	q := `UPDATE mrs SET is_closed=True
-		  WHERE  id NOT IN (SELECT mr_id 
+		  WHERE  id NOT IN (SELECT DISTINCT(mr_id) 
 						    FROM reviews 
 							WHERE is_approved= FALSE);`
 	_, err := c.db.Exec(q)

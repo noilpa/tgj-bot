@@ -78,9 +78,9 @@ func (a *App) notify() {
 					}
 				}
 				if messagesCount == 0 {
-					msg += "\n" + praise()
+					msg += "\n" + a.praise()
 				} else {
-					msg += "\n" + motivate()
+					msg += "\n" + a.motivate()
 				}
 				a.Telegram.SendMessage(msg)
 				isNotified = true

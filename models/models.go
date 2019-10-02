@@ -1,6 +1,10 @@
 package models
 
 import (
+	"net/url"
+	"strconv"
+	"strings"
+
 	ce "tgj-bot/custom_errors"
 )
 
@@ -69,6 +73,7 @@ type MR struct {
 	URL      string
 	AuthorID *int
 	IsClosed bool
+	GitlabID int
 }
 
 type Review struct {
@@ -77,4 +82,14 @@ type Review struct {
 	IsApproved  bool
 	IsCommented bool
 	UpdatedAt   int64
+}
+
+func GetGitlabID(mrURL string) (int, error) {
+	url_, err := url.Parse(mrURL)
+	if err != nil {
+		return 0, err
+	}
+	pathArr := strings.Split(url_.Path, "/")
+	mrID, err := strconv.Atoi(pathArr[len(pathArr)-1])
+	return mrID, err
 }

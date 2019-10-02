@@ -25,6 +25,7 @@ type TgConfig struct {
 type Client struct {
 	Bot     *tgbotapi.BotAPI
 	Updates tgbotapi.UpdatesChannel
+	ChatID  int64
 }
 
 func RunBot(cfg TgConfig) (tgClient Client, err error) {
@@ -46,7 +47,15 @@ func RunBot(cfg TgConfig) (tgClient Client, err error) {
 	if err != nil {
 		return tgClient, errors.New("Update channel err: " + err.Error())
 	}
+	tgClient.ChatID = cfg.ChatID
 
+	return
+}
+
+func (c *Client) SendMessage(msg string) {
+	if m, err := c.Bot.Send(tgbotapi.NewMessage(c.ChatID, msg)); err != nil {
+		log.Printf("Couldn't send message '%v': %v", m, err)
+	}
 	return
 }
 

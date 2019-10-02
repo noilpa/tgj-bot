@@ -17,8 +17,9 @@ import (
 )
 
 func (a *App) helpHandler() error {
-	return a.sendTgMessage(fmt.Sprint("/register gitlab_id [role=dev]\n" + "/mr merge_request_url\n" +
-		"/inactive [username]\n" + "/active [username]\n" + "/mr url"))
+	a.Telegram.SendMessage(fmt.Sprint("/register gitlab_id [role=dev]\n" + "/mr merge_request_url\n" +
+		"/inactive [username]\n" + "/active [username]\n"))
+	return nil
 }
 
 func (a *App) registerHandler(update tgbotapi.Update) (err error) {
@@ -51,9 +52,8 @@ func (a *App) registerHandler(update tgbotapi.Update) (err error) {
 	if _, err = a.DB.SaveUser(user); err != nil {
 		return err
 	}
-
-	return a.sendTgMessage(success)
-
+	a.Telegram.SendMessage(success)
+	return
 }
 
 func (a *App) isActiveHandler(update tgbotapi.Update, isActive bool) (err error) {
@@ -72,7 +72,8 @@ func (a *App) isActiveHandler(update tgbotapi.Update, isActive bool) (err error)
 	}
 	if u.IsActive == isActive {
 		// nothing to update
-		return a.sendTgMessage(success)
+		a.Telegram.SendMessage(success)
+		return
 	}
 
 	if err = a.DB.ChangeIsActiveUser(telegramUsername, isActive); err != nil {
@@ -85,8 +86,8 @@ func (a *App) isActiveHandler(update tgbotapi.Update, isActive bool) (err error)
 			return
 		}
 	}
-
-	return a.sendTgMessage(success)
+	a.Telegram.SendMessage(success)
+	return
 }
 
 func (a *App) mrHandler(update tgbotapi.Update) (err error) {
@@ -151,18 +152,18 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 		UpdatedAt: time.Now().Unix(),
 	}
 
-	msg := fmt.Sprintln("New merge request!!! ")
-	for _, r := range reviewParty {
+	msg := "New merge request " + randJoyEmoji() + "\n"
+	for i, r := range reviewParty {
 		review.UserID = r.ID
 		if err = a.DB.SaveReview(review); err != nil {
 			return
 		}
-		msg += fmt.Sprintf("@%v\n", r.TelegramUsername)
+		msg += fmt.Sprintf("%s @%v\n", pointEmoji[i%2], r.TelegramUsername)
 	}
 
-	msg += "review please"
-
-	return a.sendTgMessage(msg)
+	msg += cutoff + "\n" + mrUrl
+	a.Telegram.SendMessage(msg)
+	return
 }
 
 func (a *App) updateReviews() error {
@@ -296,7 +297,7 @@ func (a *App) reallocateUserMRs(u models.User) (err error) {
 			log.Println(ce.Wrap(err, "Reallocate MRs"))
 			continue
 		}
-		log.Println(ce.Wrap(a.sendTgMessage(fmt.Sprintf("New review: %v , @%s", mr.URL, user.TelegramUsername)), "Reallocate MRs"))
+		a.Telegram.SendMessage(fmt.Sprintf("New review:\n@%s\n%s\n%v", user.TelegramUsername, cutoff, mr.URL))
 	}
 	return nil
 }
@@ -328,16 +329,13 @@ func (a *App) isMrAlreadyExist(url string) bool {
 
 func (a *App) returnMrParty(url string) (err error) {
 	us, err := a.DB.GetUsersByMrURL(url)
-	var msg string
-	for _, u := range us {
-		msg += fmt.Sprintf("@%s\n", u.TelegramUsername)
+	msg := "Review party:\n"
+	for i, u := range us {
+		msg += fmt.Sprintf("%s %s\n", pointEmoji[i%2], u.TelegramUsername)
 	}
-	msg += cutoff
-	msg += fmt.Sprintf("\n%s", url)
-	if err = a.sendTgMessage("Review party:"); err != nil {
-		return err
-	}
-	return a.sendTgMessage(msg)
+	msg += cutoff + fmt.Sprintf("\n%s", url)
+	a.Telegram.SendMessage(msg)
+	return
 }
 
 func getParticipants(users models.UsersPayload, cfg ReviewParty) (rp models.UsersPayload, err error) {

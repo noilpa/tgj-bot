@@ -23,10 +23,12 @@ type ReviewParty struct {
 }
 
 type NotifierConfig struct {
-	IsAllow    bool  `json:"is_allow"`
-	TimeHour   int   `json:"time_hour"`
-	TimeMinute int   `json:"time_minute"`
-	Delay      int64 `json:"delay"`
+	IsAllow    bool     `json:"is_allow"`
+	TimeHour   int      `json:"time_hour"`
+	TimeMinute int      `json:"time_minute"`
+	Delay      int64    `json:"delay"`
+	Praise     []string `json:"praise"`
+	Motivate   []string `json:"motivate"`
 }
 
 type App struct {
@@ -85,9 +87,8 @@ func (a *App) Serve() (err error) {
 		}
 
 		if err != nil {
-			// mb duplicate database logging
 			log.Print(err)
-			log.Println(a.sendTgMessage(err.Error()))
+			a.Telegram.SendMessage(err.Error())
 		}
 	}
 	return

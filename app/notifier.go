@@ -78,6 +78,11 @@ func (a *App) notify() {
 						messagesCount++
 					}
 				}
+				if messagesCount == 0 {
+					msg += "\n" + praise()
+				} else {
+					msg += "\n" + motivate()
+				}
 				log.Println(a.sendTgMessage(msg))
 				isNotified = true
 			}
@@ -120,4 +125,26 @@ func randSadEmoji() string {
 
 func randJoyEmoji() string {
 	return joyEmoji[rand.Intn(len(joyEmoji))]
+}
+
+func praise() string {
+	templates := []string{
+		"Мне так приятно заходить в такой отревьюиный проект)",
+		"Я вижу, что вы очень постарались!",
+		"Спасибо за ревью и дай бог здоровья!",
+		"Спасибо большое за вашу помощь в ревью!",
+		"Хорошая работа, так держать!",
+	}
+	return templates[rand.Intn(len(templates))] + randJoyEmoji()
+}
+
+func motivate() string {
+	templates := []string{
+		"Just Do IT",
+		"«Не ноша тянет вас вниз, а то, как вы ее несете», — Лу Хольц",
+		"«Я не боюсь умереть, но я боюсь не попытаться», — Jay Z",
+		"«Притворяйся, пока не получится! Делай вид, что ты настолько уверен в себе, насколько это необходимо, пока не обнаружишь, что так оно и есть», — Брайан Трейси",
+		"«Всегда выкладывайся на полную. Что посеешь — то и пожнешь», — Ог Мандино",
+	}
+	return templates[rand.Intn(len(templates))] + randJoyEmoji()
 }

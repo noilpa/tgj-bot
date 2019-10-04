@@ -80,12 +80,12 @@ func (f *fixture) getUser(tgUsername string) models.User {
 }
 
 func (f *fixture) getUsers(tgUsername ...string) models.UserList {
-	q := `SELECT id, telegram_id, telegram_username, gitlab_id, jira_id, is_active, role FROM users WHERE telegram_username = $1`
+	q := `SELECT id, telegram_id, telegram_username, gitlab_id, jira_id, is_active, role, gitlab_name FROM users WHERE telegram_username = $1`
 	n := len(tgUsername)
 	us := make([]models.User, n, n)
 	u := models.User{}
 	for i, name := range tgUsername {
-		assert.NoError(f.T, f.db.QueryRow(q, name).Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.GitlabID, &u.JiraID, &u.IsActive, &u.Role))
+		assert.NoError(f.T, f.db.QueryRow(q, name).Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.GitlabID, &u.JiraID, &u.IsActive, &u.Role, &u.GitlabName))
 		us[i] = u
 	}
 	return us

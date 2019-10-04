@@ -158,33 +158,33 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 	}
 
 	msg := "New merge request " + randJoyEmoji() + "\n"
-	for i, r := range reviewParty {
+	for i := range reviewParty {
 
-		if r.GitlabName == "" {
-			r.GitlabName, err = a.Gitlab.GetUserByID(r.GitlabID)
+		if reviewParty[i].GitlabName == "" {
+			reviewParty[i].GitlabName, err = a.Gitlab.GetUserByID(reviewParty[i].GitlabID)
 			if err != nil {
-				return ce.WrapWithLog(err, fmt.Sprintf("MR handler fail to get gitlab name for %v", r.TelegramUsername))
+				return ce.WrapWithLog(err, fmt.Sprintf("MR handler fail to get gitlab name for %v", reviewParty[i].TelegramUsername))
 			}
-			if _, err = a.DB.SaveUser(models.User{UserBrief: r.UserBrief}); err != nil {
+			if _, err = a.DB.SaveUser(models.User{UserBrief: reviewParty[i].UserBrief}); err != nil {
 				return ce.WrapWithLog(err, "MR handler fail")
 			}
 		}
 
-		if r.GitlabID == 0 {
-			r.GitlabID, err = a.Gitlab.GetUserByName(r.GitlabName)
+		if reviewParty[i].GitlabID == 0 {
+			reviewParty[i].GitlabID, err = a.Gitlab.GetUserByName(reviewParty[i].GitlabName)
 			if err != nil {
-				return ce.WrapWithLog(err, fmt.Sprintf("MR handler fail to get gitlab id for %v", r.TelegramUsername))
+				return ce.WrapWithLog(err, fmt.Sprintf("MR handler fail to get gitlab id for %v", reviewParty[i].TelegramUsername))
 			}
-			if _, err = a.DB.SaveUser(models.User{UserBrief: r.UserBrief}); err != nil {
+			if _, err = a.DB.SaveUser(models.User{UserBrief: reviewParty[i].UserBrief}); err != nil {
 				return ce.WrapWithLog(err, "MR handler fail")
 			}
 		}
 
-		review.UserID = r.ID
+		review.UserID = reviewParty[i].ID
 		if err = a.DB.SaveReview(review); err != nil {
 			return
 		}
-		msg += fmt.Sprintf("%s @%v\n", pointEmoji[i%2], r.TelegramUsername)
+		msg += fmt.Sprintf("%s @%v\n", pointEmoji[i%2], reviewParty[i].TelegramUsername)
 	}
 
 	msg += cutoff + "\n" + mrUrl

@@ -14,11 +14,13 @@ type UserBrief struct {
 	// always lowercase
 	TelegramUsername string
 	Role             Role
+	GitlabName       string
+	GitlabID         int
+	JiraID           string
 }
 
 type User struct {
 	UserBrief
-	GitlabID string
 	JiraID   string
 	IsActive bool
 }

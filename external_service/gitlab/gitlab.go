@@ -1,11 +1,16 @@
 package gitlab_
 
 import (
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/xanzy/go-gitlab"
+
+	ce "tgj-bot/custom_errors"
+	"tgj-bot/models"
 )
 
 const (
@@ -110,4 +115,57 @@ func (c *Client) MrIsOpen(mrID int) (bool, error) {
 	}
 	log.Printf("Get MR from gitlab %d: %v\n", mrID, mr)
 	return mr.State == opened, nil
+}
+
+func (c *Client) GetUserByID(gitlabID int) (name string, err error) {
+	user, _, err := c.Gitlab.Users.GetUser(gitlabID)
+	log.Println("Get user by gitlab id:", user)
+	if err != nil {
+		return
+	}
+	return user.Username, nil
+}
+
+func (c *Client) GetUserByName(gitlabName string) (id int, err error){
+	options := &gitlab.ListUsersOptions{Username: &gitlabName}
+	userList, _, err := c.Gitlab.Users.ListUsers(options)
+	log.Println("Get user by gitlab name:", userList)
+	if err != nil {
+		return
+	}
+	if len(userList) > 1 {
+		return 0, errors.New(fmt.Sprintf("more than one matches found by name=%s\ntry to use gitlab id instead", gitlabName))
+	}
+	return userList[0].ID, nil
+}
+
+func (c *Client) WriteReviewers(mrID int, reviewers models.UsersPayload) error {
+	description, err := c.getMrDescription(mrID)
+	spew.Dump(description, err)
+	if err != nil {
+		ce.WrapWithLog(err, "get mr description fail")
+		return err
+	}
+	description += "\n\n// Reviewers: "
+	for _, r := range reviewers {
+		description += fmt.Sprintf("@%s ", r.GitlabName)
+	}
+	description += "//"
+	opt := &gitlab.UpdateMergeRequestOptions{Description: &description}
+	_, _, err = c.Gitlab.MergeRequests.UpdateMergeRequest(c.Project.ID, mrID, opt)
+	spew.Dump(opt, c.Project.ID, mrID)
+	spew.Dump(description, err)
+
+	return err
+}
+
+func (c *Client) getMrDescription(mrID int) (description string, err error) {
+	mr, resp, err := c.Gitlab.MergeRequests.GetMergeRequest(c.Project.ID, mrID, nil)
+	respBody, _ := ioutil.ReadAll(resp.Body)
+	log.Println("Get mr description:", string(respBody))
+	if err != nil {
+		return
+	}
+
+	return mr.Description, nil
 }

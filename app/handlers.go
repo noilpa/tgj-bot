@@ -36,7 +36,6 @@ func (a *App) registerHandler(update tgbotapi.Update) (err error) {
 			TelegramUsername: strings.ToLower(update.Message.From.UserName),
 			Role:             models.Developer,
 		},
-		GitlabID: args[0],
 		JiraID:   "",
 		IsActive: true,
 	}
@@ -47,6 +46,11 @@ func (a *App) registerHandler(update tgbotapi.Update) (err error) {
 		} else {
 			return errors.New(fmt.Sprintf("second parameter (role) must be equal one of %v", models.ValidRoles))
 		}
+	}
+
+	user.GitlabID, user.GitlabName, err = a.getGitlabInfo(args[0])
+	if err != nil {
+		return ce.WrapWithLog(err, fmt.Sprintf("get gitlab info %v", args[0]))
 	}
 
 	if _, err = a.DB.SaveUser(user); err != nil {
@@ -147,6 +151,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 	if err != nil {
 		return
 	}
+
 	review := models.Review{
 		MrID:      mr.ID,
 		UpdatedAt: time.Now().Unix(),
@@ -154,6 +159,27 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 
 	msg := "New merge request " + randJoyEmoji() + "\n"
 	for i, r := range reviewParty {
+
+		if r.GitlabName == "" {
+			r.GitlabName, err = a.Gitlab.GetUserByID(r.GitlabID)
+			if err != nil {
+				return ce.WrapWithLog(err, fmt.Sprintf("MR handler fail to get gitlab name for %v", r.TelegramUsername))
+			}
+			if _, err = a.DB.SaveUser(models.User{UserBrief: r.UserBrief}); err != nil {
+				return ce.WrapWithLog(err, "MR handler fail")
+			}
+		}
+
+		if r.GitlabID == 0 {
+			r.GitlabID, err = a.Gitlab.GetUserByName(r.GitlabName)
+			if err != nil {
+				return ce.WrapWithLog(err, fmt.Sprintf("MR handler fail to get gitlab id for %v", r.TelegramUsername))
+			}
+			if _, err = a.DB.SaveUser(models.User{UserBrief: r.UserBrief}); err != nil {
+				return ce.WrapWithLog(err, "MR handler fail")
+			}
+		}
+
 		review.UserID = r.ID
 		if err = a.DB.SaveReview(review); err != nil {
 			return
@@ -162,6 +188,17 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 	}
 
 	msg += cutoff + "\n" + mrUrl
+
+	gitlabMrID, err := models.GetGitlabID(mr.URL)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	if err = a.Gitlab.WriteReviewers(gitlabMrID, reviewParty); err != nil {
+		log.Println(err)
+		return
+	}
+
 	a.Telegram.SendMessage(msg)
 	return
 }
@@ -181,19 +218,19 @@ func (a *App) updateReviews() error {
 	for _, mr := range mrs {
 		mr.GitlabID, err = models.GetGitlabID(mr.URL)
 		if err != nil {
-			ce.WrapWithLog(err, "Parse gitlab mr id")
+			_ = ce.WrapWithLog(err, "Parse gitlab mr id")
 			continue
 		}
 		mrIsOpen, err := a.Gitlab.MrIsOpen(mr.GitlabID)
 		log.Printf("Update reviews mr_id=%d is_open=%v", mr.ID, mrIsOpen)
 		if !mrIsOpen {
-			ce.WrapWithLog(a.DB.CloseMR(mr.ID), "close mr err")
+			_ = ce.WrapWithLog(a.DB.CloseMR(mr.ID), "close mr err")
 		}
 		if err = a.updateMrLikes(mr); err != nil {
-			ce.WrapWithLog(err, "update mr likes")
+			_ = ce.WrapWithLog(err, "update mr likes")
 		}
 		if err = a.updateMrComments(mr); err != nil {
-			ce.WrapWithLog(err, "update mr comments")
+			_ = ce.WrapWithLog(err, "update mr comments")
 		}
 	}
 
@@ -336,6 +373,24 @@ func (a *App) returnMrParty(url string) (err error) {
 	msg += cutoff + fmt.Sprintf("\n%s", url)
 	a.Telegram.SendMessage(msg)
 	return
+}
+
+func (a *App) getGitlabInfo(arg string) (int, string, error) {
+	invalidArgument := errors.New(fmt.Sprintf("invalid argument %v", arg))
+
+	id, err := strconv.Atoi(arg)
+	if err != nil {
+		id, err = a.Gitlab.GetUserByName(arg)
+		if err != nil {
+			return 0, "", invalidArgument
+		}
+	}
+	name, err := a.Gitlab.GetUserByID(id)
+	if err != nil {
+		return 0, "", invalidArgument
+	}
+
+	return id, name, nil
 }
 
 func getParticipants(users models.UsersPayload, cfg ReviewParty) (rp models.UsersPayload, err error) {

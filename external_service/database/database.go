@@ -76,6 +76,7 @@ func (c *Client) initSchema() (err error) {
 					  telegram_id TEXT UNIQUE,
 					  telegram_username TEXT UNIQUE,
 					  gitlab_id TEXT UNIQUE, 
+					  gitlab_name TEXT NOT NULL DEFAULT '',
 					  jira_id TEXT, 
 					  is_active BOOLEAN, 
 					  role TEXT);`

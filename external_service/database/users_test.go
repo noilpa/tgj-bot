@@ -19,8 +19,9 @@ func TestClient_SaveUser(t *testing.T) {
 				TelegramID:       th.String(),
 				TelegramUsername: th.String(),
 				Role:             th.Role(),
+				GitlabID: th.Int(),
+				GitlabName: th.String(),
 			},
-			GitlabID: th.String(),
 			JiraID:   th.String(),
 			IsActive: th.Bool(),
 		}

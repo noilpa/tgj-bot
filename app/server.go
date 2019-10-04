@@ -95,7 +95,7 @@ func (a *App) Serve() (err error) {
 }
 
 func (a *App) isUserRegister(tgUsername string) (int, error) {
-	u, err := a.DB.GetUserByTgUsername(tgUsername)
+	u, err := a.DB.GetUserByTgUsername(strings.ToLower(tgUsername))
 	if err != nil {
 		err = ce.WrapWithLog(err, ce.ErrUserNorRegistered.Error())
 	}

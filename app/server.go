@@ -2,6 +2,7 @@ package app
 
 import (
 	"log"
+	"strings"
 
 	ce "tgj-bot/custom_errors"
 	db "tgj-bot/external_service/database"

@@ -54,8 +54,8 @@ func (f *fixture) createUser() models.User {
 }
 
 func (f *fixture) createUsersN(n int) []models.User {
-	q := `INSERT INTO users (telegram_id, telegram_username, gitlab_id, jira_id, is_active, role)
-		  VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
+	q := `INSERT INTO users (telegram_id, telegram_username, gitlab_id, jira_id, is_active, role, gitlab_name)
+		  VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`
 	us := make([]models.User, n, n)
 	for i := 0; i < n; i++ {
 		u := models.User{
@@ -69,7 +69,7 @@ func (f *fixture) createUsersN(n int) []models.User {
 			JiraID:   th.String(),
 			IsActive: true,
 		}
-		assert.NoError(f.T, f.db.QueryRow(q, u.TelegramID, u.TelegramUsername, u.GitlabID, u.JiraID, u.IsActive, u.Role).Scan(&u.ID))
+		assert.NoError(f.T, f.db.QueryRow(q, u.TelegramID, u.TelegramUsername, u.GitlabID, u.JiraID, u.IsActive, u.Role, u.GitlabName).Scan(&u.ID))
 		us[i] = u
 	}
 	return us

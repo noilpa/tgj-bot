@@ -2,6 +2,7 @@ image: golang:1.12-alpine
 
 variables:
   DOCKER_REGISTRY: registry.itv.restr.im:5000
+  VERSION: 1.0.1
   IMAGE_DIR: new-cache/tgj-bot
   POSTGRES_USER: tgj_bot_user
   POSTGRES_PASSWORD: tgj_bot_user
@@ -10,7 +11,7 @@ variables:
 
 
 before_script:
-  - export IMAGE_NAME=${DOCKER_REGISTRY}/${IMAGE_DIR}:latest
+  - export IMAGE_NAME=${DOCKER_REGISTRY}/${IMAGE_DIR}:{$VERSION}
 
 services:
   - docker:dind

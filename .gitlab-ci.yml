@@ -11,7 +11,7 @@ variables:
 
 
 before_script:
-  - export IMAGE_NAME=${DOCKER_REGISTRY}/${IMAGE_DIR}:{$VERSION}
+  - export IMAGE_NAME=${DOCKER_REGISTRY}/${IMAGE_DIR}:${VERSION}
 
 services:
   - docker:dind

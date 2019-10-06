@@ -158,8 +158,10 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 	}
 
 	msg := "New merge request " + randJoyEmoji() + "\n"
+	reviewPartyBrief := make([]models.UserBrief, 0, len(reviewParty))
 	for i := range reviewParty {
 
+		// todo remove in next version
 		if reviewParty[i].GitlabName == "" {
 			reviewParty[i].GitlabName, err = a.Gitlab.GetUserByID(reviewParty[i].GitlabID)
 			if err != nil {
@@ -170,6 +172,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 			}
 		}
 
+		// todo remove in next version
 		if reviewParty[i].GitlabID == 0 {
 			reviewParty[i].GitlabID, err = a.Gitlab.GetUserByName(reviewParty[i].GitlabName)
 			if err != nil {
@@ -180,6 +183,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 			}
 		}
 
+		reviewPartyBrief = append(reviewPartyBrief, reviewParty[i].UserBrief)
 		review.UserID = reviewParty[i].ID
 		if err = a.DB.SaveReview(review); err != nil {
 			return
@@ -194,7 +198,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 		log.Println(err)
 		return err
 	}
-	if err = a.Gitlab.WriteReviewers(gitlabMrID, reviewParty); err != nil {
+	if err = a.Gitlab.WriteReviewers(gitlabMrID, reviewPartyBrief); err != nil {
 		log.Println(err)
 		return
 	}
@@ -320,18 +324,33 @@ func (a *App) reallocateUserMRs(u models.User) (err error) {
 			log.Println(ce.Wrap(err, "Reallocate MRs"))
 			continue
 		}
-		// update review
-		if err = a.DB.SaveReview(models.Review{
+
+		if err = a.DB.UpdateReview(models.Review{
 			MrID:      mrID,
-			UserID:    user.ID,
+			UserID:    u.ID,
 			UpdatedAt: time.Now().Unix(),
-		}); err != nil {
-			log.Println(ce.Wrap(err, "Reallocate MRs"))
+		}, user.ID); err != nil {
+			log.Println(ce.Wrap(err, "Reallocate MRs UpdateReview"))
 			continue
 		}
 		mr, err := a.DB.GetMrByID(mrID)
 		if err != nil {
-			log.Println(ce.Wrap(err, "Reallocate MRs"))
+			log.Println(ce.Wrap(err, "Reallocate MRs GetMrByID"))
+			continue
+		}
+		gitlabMrID, err := models.GetGitlabID(mr.URL)
+		if err != nil {
+			log.Println(ce.Wrap(err, "Reallocate MRs GetGitlabID"))
+			continue
+		}
+		reviewers, err := a.DB.GetUsersByMrID(mrID)
+		if err != nil {
+			log.Println(ce.Wrap(err, "Reallocate MRs GetUsersByMrID"))
+			continue
+		}
+		err = a.Gitlab.WriteReviewers(gitlabMrID, reviewers)
+		if err != nil {
+			log.Println(ce.Wrap(err, "Reallocate MRs WriteReviewers"))
 			continue
 		}
 		a.Telegram.SendMessage(fmt.Sprintf("New review:\n@%s\n%s\n%v", user.TelegramUsername, cutoff, mr.URL))

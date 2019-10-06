@@ -1,6 +1,7 @@
 package gitlab_
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -18,6 +19,8 @@ const (
 	closed = "closed"
 	locked = "locked"
 	merged = "merged"
+	startComment = "Reviewers: "
+	endComment = "//"
 )
 
 type GitlabService interface {
@@ -139,18 +142,19 @@ func (c *Client) GetUserByName(gitlabName string) (id int, err error){
 	return userList[0].ID, nil
 }
 
-func (c *Client) WriteReviewers(mrID int, reviewers models.UsersPayload) error {
+func (c *Client) WriteReviewers(mrID int, reviewers []models.UserBrief) error {
 	description, err := c.getMrDescription(mrID)
-	spew.Dump(description, err)
+	spew.Dump(description)
 	if err != nil {
 		ce.WrapWithLog(err, "get mr description fail")
 		return err
 	}
-	description += "\n\n// Reviewers: "
+	description = removeReviewersFromDescription(description)
+	description += "\n\n" + startComment
 	for _, r := range reviewers {
 		description += fmt.Sprintf("@%s ", r.GitlabName)
 	}
-	description += "//"
+	description += endComment
 	opt := &gitlab.UpdateMergeRequestOptions{Description: &description}
 	_, _, err = c.Gitlab.MergeRequests.UpdateMergeRequest(c.Project.ID, mrID, opt)
 	spew.Dump(opt, c.Project.ID, mrID)
@@ -168,4 +172,22 @@ func (c *Client) getMrDescription(mrID int) (description string, err error) {
 	}
 
 	return mr.Description, nil
+}
+
+func removeReviewersFromDescription(description string) string {
+	if len(description) == 0 {
+		return ""
+	}
+
+	bDescription := []byte(description)
+
+	startIndex := bytes.Index(bDescription, []byte(startComment))
+	lastIndex := bytes.LastIndex(bDescription, []byte(endComment))
+
+	if startIndex == -1 || lastIndex == -1 || startIndex > lastIndex {
+		return ""
+	}
+
+	// +2 remove last "//"
+	return string(append(bDescription[:startIndex], bDescription[lastIndex+2:]...))
 }

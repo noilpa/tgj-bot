@@ -1,11 +1,17 @@
 package models
 
 import (
+	"errors"
 	"net/url"
 	"strconv"
 	"strings"
 
 	ce "tgj-bot/custom_errors"
+)
+
+const (
+	Developer = Role("dev")
+	Lead      = Role("lead")
 )
 
 type UserBrief struct {
@@ -54,11 +60,6 @@ func (ups UsersPayload) GetN(num int, role Role) (res UsersPayload, err error) {
 
 type Role string
 
-const (
-	Developer = Role("dev")
-	Lead      = Role("lead")
-)
-
 var ValidRoles = [...]Role{Developer, Lead}
 
 func IsValidRole(r Role) bool {
@@ -92,6 +93,9 @@ func GetGitlabID(mrURL string) (int, error) {
 		return 0, err
 	}
 	pathArr := strings.Split(url_.Path, "/")
-	mrID, err := strconv.Atoi(pathArr[len(pathArr)-1])
+	if len(pathArr) < 4 {
+		return 0, errors.New("wrong url format")
+	}
+	mrID, err := strconv.Atoi(pathArr[4])
 	return mrID, err
 }

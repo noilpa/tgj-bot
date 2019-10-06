@@ -19,6 +19,15 @@ func (c *Client) SaveReview(r models.Review) (err error) {
 	return
 }
 
+func (c *Client) UpdateReview(r models.Review, newUserID int) (err error) {
+	q := `UPDATE reviews SET user_id = $1, updated_at = $2 WHERE user_id = $3 AND mr_id = $4`
+	_, err = c.db.Exec(q, newUserID, r.UpdatedAt, r.UserID, r.MrID)
+	if err != nil {
+		err = ce.WrapWithLog(err, "update review")
+	}
+	return
+}
+
 func (c *Client) UpdateReviewApprove(r models.Review) error {
 	q := `UPDATE reviews 
 			SET is_approved = $1,

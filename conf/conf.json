@@ -1,18 +1,18 @@
 {
   "telegram": {
-    "token": "951003785:AAE7AuKzWR_boIH-HnJHur62MXm9E05Xqn8",
-    "update_timeout": 1,
-    "proxy": "socks5://ogerasimov:WdUvk9vTbL@dds.klaster.us:1080",
-    "chat_id": -371381100
+    "token": "xxxxxx-xxxxx-xxxxxx",
+    "update_timeout": 60,
+    "proxy": "",
+    "chat_id": -123456
   },
   "gitlab": {
-    "token": "hgRHmWrxR4uPsJxr6kBe",
-    "project_id": "636"
+    "token": "xxxxxx-xxxxxx-xxxxx",
+    "project_id": "1234567890-87654"
   },
   "jira": {},
   "database": {
     "driver": "postgres",
-    "dsn": "user=tgj_bot_user password=tgj_bot_user dbname=tgj_bot_db  sslmode=disable",
+    "dsn": "user=user password=password dbname=db",
     "host": "postgres"
   },
   "review_party": {
@@ -20,10 +20,10 @@
     "dev": 1
   },
   "notifier": {
-    "is_allow": false,
-    "time_hour": 16,
+    "is_allow": true,
+    "time_hour": 12,
     "time_minute": 20,
-    "delay": 1,
+    "delay": 259200
     "praise": [
       "Так приятно заходить в отревьюиный проект)",
       "Я вижу, что вы очень постарались!",

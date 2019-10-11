@@ -7,6 +7,7 @@ import (
 	"time"
 
 	ce "tgj-bot/custom_errors"
+	"tgj-bot/models"
 )
 
 const (
@@ -61,6 +62,18 @@ func (a *App) notify() {
 					continue
 				}
 				log.Printf("Notifier active users %v", us)
+
+				IDs, err := a.DB.CloseMRs()
+				if err != nil {
+					log.Printf("err close mrs: %v", err)
+				}
+				for _, id := range IDs {
+					if err = a.Gitlab.SetLabelToMR(id, models.ReviewedLabel); err != nil {
+						log.Printf("err set label for mr_id=%d: %v", id, err)
+						continue
+					}
+					log.Printf("successfully set label for mr_id=%d", id)
+				}
 
 				messagesCount := 0
 				msg := greeting + "\n"

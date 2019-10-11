@@ -36,18 +36,33 @@ func (c *Client) GetOpenedMRs() (mrs []models.MR, err error) {
 	return
 }
 
-func (c *Client) CloseMRs() error {
+func (c *Client) CloseMRs() ([]int, error) {
 	q := `UPDATE mrs SET is_closed=True
 		  WHERE  id NOT IN (SELECT DISTINCT(mr_id) 
 						    FROM reviews 
-							WHERE is_approved= FALSE);`
-	_, err := c.db.Exec(q)
+							WHERE is_approved= FALSE)
+			AND id NOT IN (SELECT id 
+						   FROM mrs 
+			    		   WHERE is_closed=True)			
+		  RETURNING id;`
+	rows, err := c.db.Query(q)
 	if err != nil {
 		err = ce.WrapWithLog(ce.ErrCloseMRs, err.Error())
-		return err
+		return nil, err
+	}
+	defer rows.Close()
+
+	var IDs []int
+	var id int
+	for rows.Next(){
+		if err = rows.Scan(&id); err != nil {
+			err = ce.WrapWithLog(err, "get closed mrs id")
+			return nil, err
+		}
+		IDs = append(IDs, id)
 	}
 
-	return nil
+	return IDs, nil
 }
 
 func (c *Client) CloseMR(id int) error {

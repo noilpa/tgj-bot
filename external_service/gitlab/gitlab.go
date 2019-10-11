@@ -185,9 +185,17 @@ func removeReviewersFromDescription(description string) string {
 	lastIndex := bytes.LastIndex(bDescription, []byte(endComment))
 
 	if startIndex == -1 || lastIndex == -1 || startIndex > lastIndex {
-		return ""
+		return description
 	}
 
 	// +2 remove last "//"
 	return string(append(bDescription[:startIndex], bDescription[lastIndex+2:]...))
+}
+
+func (c *Client) SetLabelToMR(mrID int, labels ...string) error {
+	opt := &gitlab.UpdateMergeRequestOptions{Labels: labels}
+	_, resp, err := c.Gitlab.MergeRequests.UpdateMergeRequest(c.Project.ID, mrID, opt)
+	respBody, _ := ioutil.ReadAll(resp.Body)
+	log.Println("Set Label to MR:", string(respBody))
+	return err
 }

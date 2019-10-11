@@ -2,7 +2,7 @@ image: golang:1.12-alpine
 
 variables:
   DOCKER_REGISTRY: registry.itv.restr.im:5000
-  VERSION: 1.0.1
+  VERSION: 1.0.2
   IMAGE_DIR: new-cache/tgj-bot
   POSTGRES_USER: tgj_bot_user
   POSTGRES_PASSWORD: tgj_bot_user
@@ -11,7 +11,8 @@ variables:
 
 
 before_script:
-  - export IMAGE_NAME=${DOCKER_REGISTRY}/${IMAGE_DIR}:${VERSION}
+  - export IMAGE_NAME_WITH_VERSION=${DOCKER_REGISTRY}/${IMAGE_DIR}:${VERSION}
+  - export IMAGE_NAME_LATEST=${DOCKER_REGISTRY}/${IMAGE_DIR}:latest
 
 services:
   - docker:dind
@@ -47,8 +48,10 @@ build:
   only:
     - master
   script:
-    - docker build -t ${IMAGE_NAME} .
-    - docker push ${IMAGE_NAME}
+    - docker build -t ${IMAGE_NAME_WITH_VERSION} .
+    - docker push ${IMAGE_NAME_WITH_VERSION}
+    - docker tag ${IMAGE_NAME_WITH_VERSION} ${IMAGE_NAME_LATEST}
+    - docker push ${IMAGE_NAME_LATEST}
     - apk add curl
     - curl -X POST http://usnc.itv.restr.im/api/webhooks/abaeaab1-bcf7-4d92-b11d-487249b6740d
   when: manual

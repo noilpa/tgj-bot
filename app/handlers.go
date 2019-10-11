@@ -238,8 +238,16 @@ func (a *App) updateReviews() error {
 		}
 	}
 
-	if err = a.DB.CloseMRs(); err != nil {
+	IDs, err := a.DB.CloseMRs()
+	if err != nil {
 		return err
+	}
+	for _, id := range IDs {
+		if err = a.Gitlab.SetLabelToMR(id, models.ReviewedLabel); err != nil {
+			log.Printf("err set label for mr_id=%d: %v", id, err)
+			continue
+		}
+		log.Printf("successfully set label for mr_id=%d", id)
 	}
 
 	return nil

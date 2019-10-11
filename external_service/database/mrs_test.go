@@ -90,7 +90,10 @@ func TestClient_CloseMRs(t *testing.T) {
 		u := f.createUser()
 		eMr := f.createMR(u.ID)
 
-		assert.NoError(t, f.CloseMRs())
+		ids, err := f.CloseMRs()
+		assert.Len(t, ids, 1)
+		assert.Equal(t, eMr.ID, ids[0])
+		assert.NoError(t, err)
 
 		aMr := f.getMR(eMr.URL)
 		assert.True(t, aMr.IsClosed)
@@ -106,7 +109,10 @@ func TestClient_CloseMRs(t *testing.T) {
 		reviews[u[1].ID] = []int{eMr.ID}
 		f.createReviews(reviews)
 
-		assert.NoError(t, f.CloseMRs())
+		ids, err := f.CloseMRs()
+		assert.Len(t, ids, 0)
+		assert.NoError(t, err)
+
 		aMr := f.getMR(eMr.URL)
 		assert.False(t, aMr.IsClosed)
 	})

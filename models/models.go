@@ -14,6 +14,10 @@ const (
 	Lead      = Role("lead")
 )
 
+const (
+	ReviewedLabel = "reviewed"
+)
+
 type UserBrief struct {
 	ID               int
 	TelegramID       string

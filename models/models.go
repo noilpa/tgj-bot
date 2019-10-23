@@ -100,6 +100,5 @@ func GetGitlabID(mrURL string) (int, error) {
 	if len(pathArr) < 4 {
 		return 0, errors.New("wrong url format")
 	}
-	mrID, err := strconv.Atoi(pathArr[4])
-	return mrID, err
+	return strconv.Atoi(pathArr[4])
 }

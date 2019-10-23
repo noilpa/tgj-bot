@@ -36,7 +36,7 @@ func (c *Client) GetOpenedMRs() (mrs []models.MR, err error) {
 	return
 }
 
-func (c *Client) CloseMRs() ([]int, error) {
+func (c *Client) CloseMRs() (mrs []models.MR, err error) {
 	q := `UPDATE mrs SET is_closed=True
 		  WHERE  id NOT IN (SELECT DISTINCT(mr_id) 
 						    FROM reviews 
@@ -44,25 +44,24 @@ func (c *Client) CloseMRs() ([]int, error) {
 			AND id NOT IN (SELECT id 
 						   FROM mrs 
 			    		   WHERE is_closed=True)			
-		  RETURNING id;`
+		  RETURNING id, url, author_id, is_closed;`
 	rows, err := c.db.Query(q)
 	if err != nil {
 		err = ce.WrapWithLog(ce.ErrCloseMRs, err.Error())
-		return nil, err
+		return
 	}
 	defer rows.Close()
 
-	var IDs []int
-	var id int
+	var mr models.MR
 	for rows.Next(){
-		if err = rows.Scan(&id); err != nil {
+		if err = rows.Scan(&mr.ID, &mr.URL, &mr.AuthorID, &mr.IsClosed); err != nil {
 			err = ce.WrapWithLog(err, "get closed mrs id")
 			return nil, err
 		}
-		IDs = append(IDs, id)
+		mrs = append(mrs, mr)
 	}
 
-	return IDs, nil
+	return
 }
 
 func (c *Client) CloseMR(id int) error {
@@ -90,5 +89,4 @@ func (c *Client) GetMRbyURL(url string) (mr models.MR, err error) {
 	err = c.db.QueryRow(q, url).Scan(&mr.ID, &mr.URL, &mr.AuthorID, &mr.IsClosed)
 	return
 }
-
 

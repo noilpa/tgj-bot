@@ -89,6 +89,7 @@ func TestClient_CloseMRs(t *testing.T) {
 		defer f.finish()
 		u := f.createUser()
 		eMr := f.createMR(u.ID)
+		eMr.IsClosed = true
 
 		mrs, err := f.CloseMRs()
 		assert.Len(t, mrs, 1)

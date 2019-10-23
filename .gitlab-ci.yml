@@ -53,5 +53,5 @@ build:
     - docker tag ${IMAGE_NAME_WITH_VERSION} ${IMAGE_NAME_LATEST}
     - docker push ${IMAGE_NAME_LATEST}
     - apk add curl
-    - curl -X POST http://usnc.itv.restr.im/api/webhooks/abaeaab1-bcf7-4d92-b11d-487249b6740d
+    - curl -X POST http://usnc.itv.restr.im/api/webhooks/2b2e0f41-57fc-4330-b75a-62d9fe657522
   when: manual

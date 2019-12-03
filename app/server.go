@@ -59,7 +59,7 @@ const success = "Success! 👍"
 
 func (a *App) Serve() (err error) {
 	a.notify()
-	a.runCheckUpdates()
+	a.updateTasksFromJira()
 
 	for update := range a.Telegram.Updates {
 		if update.Message == nil {
@@ -111,9 +111,9 @@ func (a *App) isUserRegister(tgUsername string) (int, error) {
 	return int(u.ID), err
 }
 
-func (a *App) runCheckUpdates() {
+func (a *App) updateTasksFromJira() {
 	go func() {
-		for _ = range time.Tick(time.Second) {
+		for _ = range time.Tick(time.Minute * 10) {
 			ctx := context.Background()
 			log.Println("updating mrs info from jira...")
 			mrs, err := a.DB.GetOpenedMRs()
@@ -123,7 +123,7 @@ func (a *App) runCheckUpdates() {
 			}
 
 			for _, mr := range mrs {
-				if err := a.updateInfoFromJira(ctx, mr); err != nil {
+				if err := a.updateTaskFromJira(ctx, mr); err != nil {
 					a.logError(err)
 				}
 			}
@@ -131,7 +131,7 @@ func (a *App) runCheckUpdates() {
 	}()
 }
 
-func (a *App) updateInfoFromJira(ctx context.Context, mr models.MR) error {
+func (a *App) updateTaskFromJira(ctx context.Context, mr models.MR) error {
 	isChanged := false
 	if mr.JiraID == 0 {
 		gitlabID, err := mr.GetGitlabID()

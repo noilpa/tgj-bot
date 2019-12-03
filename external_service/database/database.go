@@ -86,6 +86,8 @@ func (c *Client) initSchema() (err error) {
 					url TEXT UNIQUE,
 					author_id INTEGER NOT NULL,
 					is_closed BOOLEAN DEFAULT FALSE,
+					jira_id INTEGER NOT NULL DEFAULT 0,
+					jira_priority INTEGER NOT NULL DEFAULT 0,
 					FOREIGN KEY(author_id) REFERENCES users(id));`
 
 	createReviews := `CREATE TABLE IF NOT EXISTS reviews (

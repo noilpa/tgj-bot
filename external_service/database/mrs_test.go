@@ -18,7 +18,7 @@ func TestClient_SaveMR(t *testing.T) {
 			URL:      th.String(),
 			AuthorID: &u.ID,
 		}
-		mr, err := f.SaveMR(mr)
+		mr, err := f.CreateMR(mr)
 		assert.NoError(t, err)
 
 		actMR := f.getMR(mr.URL)
@@ -32,10 +32,10 @@ func TestClient_SaveMR(t *testing.T) {
 			URL:      th.String(),
 			AuthorID: &u.ID,
 		}
-		mr, err := f.SaveMR(mr)
+		mr, err := f.CreateMR(mr)
 		assert.NoError(t, err)
 
-		_, err = f.SaveMR(mr)
+		_, err = f.CreateMR(mr)
 		assert.Error(t, err)
 	})
 }

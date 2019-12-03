@@ -16,8 +16,9 @@ const (
 )
 
 var (
-	pointEmoji = []string{"🔹", "🔸"}
-	sadEmoji   = []string{"😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "☺", "️🙂", "🤗", "🤔", "😐",
+	highestEmoji = "🔥"
+	pointEmoji   = []string{"🔹", "🔸"}
+	sadEmoji     = []string{"😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "☺", "️🙂", "🤗", "🤔", "😐",
 		"😑", "😶", "🙄", "😏", "😣", "😥", "😮", "🤐", "😯", "😪", "😫", "😴", "😌", "😛", "😜", "😝", "🤤", "😒", "😓",
 		"😔", "😕", "🙃", "🤑", "😲", "☹", "️🙁", "😖", "😞", "😟", "😤", "😢", "😭", "😦", "😧", "😨", "😩"}
 	joyEmoji = []string{"😉", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "☺", "️😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "😘",
@@ -68,7 +69,7 @@ func (a *App) notify() {
 					log.Printf("err close mrs: %v", err)
 				}
 				for _, mr := range mrs {
-					gitlabID, err := models.GetGitlabID(mr.URL)
+					gitlabID, err := mr.GetGitlabID()
 					if err != nil {
 						log.Printf("err parse gitlab id for mr=%v: %v", mr, err)
 						continue
@@ -123,7 +124,11 @@ func (a *App) buildNotifierMRString(uID int) (s string, err error) {
 				err = ce.WrapWithLog(err, "notifier build message")
 				return s, err
 			}
-			s += fmt.Sprintf("%s %s\n", pointEmoji[i%2], mr.URL)
+			priority := ""
+			if mr.IsHighest() {
+				priority = " " + highestEmoji
+			}
+			s += fmt.Sprintf("%s%s %s\n", pointEmoji[i%2], priority, mr.URL)
 		}
 	}
 	return
@@ -138,9 +143,9 @@ func randJoyEmoji() string {
 }
 
 func (a App) praise() string {
-	return a.Config.Notifier.Praise[rand.Intn(len(a.Config.Notifier.Praise))] + randJoyEmoji()
+	return a.Config.Notifier.Praise[rand.Intn(len(a.Config.Notifier.Praise))] + " " + randJoyEmoji()
 }
 
 func (a App) motivate() string {
-	return a.Config.Notifier.Motivate[rand.Intn(len(a.Config.Notifier.Motivate))] + randJoyEmoji()
+	return a.Config.Notifier.Motivate[rand.Intn(len(a.Config.Notifier.Motivate))] + " " + randJoyEmoji()
 }

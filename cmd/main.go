@@ -10,6 +10,7 @@ import (
 	a "tgj-bot/app"
 	"tgj-bot/external_service/database"
 	gitlab_ "tgj-bot/external_service/gitlab"
+	"tgj-bot/external_service/jira"
 	"tgj-bot/external_service/telegram"
 )
 
@@ -43,6 +44,11 @@ func main() {
 	defer app.DB.Close()
 
 	app.Gitlab, err = gitlab_.RunGitlab(app.Config.Gl)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	app.Jira, err = jira.NewJira(app.Config.Jira)
 	if err != nil {
 		log.Panic(err)
 	}

@@ -3,10 +3,12 @@ package models
 import (
 	"errors"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
 	ce "tgj-bot/custom_errors"
+	"tgj-bot/external_service/jira"
 )
 
 const (
@@ -18,9 +20,11 @@ const (
 	ReviewedLabel = "reviewed"
 )
 
+var jiraRegExp = regexp.MustCompile(`\[NC-([0-9]+)\]*`)
+
 type UserBrief struct {
-	ID               int
-	TelegramID       string
+	ID         int
+	TelegramID string
 	// always lowercase
 	TelegramUsername string
 	Role             Role
@@ -76,11 +80,31 @@ func IsValidRole(r Role) bool {
 }
 
 type MR struct {
-	ID       int
-	URL      string
-	AuthorID *int
-	IsClosed bool
-	GitlabID int
+	ID           int
+	URL          string
+	AuthorID     *int
+	IsClosed     bool
+	GitlabID     int
+	JiraID       int
+	JiraPriority int
+}
+
+func (mr *MR) ExtractJiraID(title string) {
+	matches := jiraRegExp.FindStringSubmatch(title)
+	if len(matches) == 2 {
+		jiraID, err := strconv.Atoi(matches[1])
+		if err == nil {
+			mr.JiraID = jiraID
+		}
+	}
+}
+
+func (mr *MR) GetGitlabID() (int, error) {
+	return GetGitlabID(mr.URL)
+}
+
+func (mr *MR) IsHighest() bool {
+	return mr.JiraPriority == jira.PriorityHighest
 }
 
 type Review struct {

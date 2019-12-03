@@ -9,7 +9,11 @@
     "token": "xxxxxx-xxxxxx-xxxxx",
     "project_id": "1234567890-87654"
   },
-  "jira": {},
+  "jira": {
+    "base_url": "https://jira.svc.iptv.rt.ru",
+    "username": "nc_bot",
+    "password": "pass"
+  },
   "database": {
     "driver": "postgres",
     "dsn": "user=user password=password dbname=db",
@@ -23,7 +27,7 @@
     "is_allow": true,
     "time_hour": 12,
     "time_minute": 20,
-    "delay": 259200
+    "delay": 259200,
     "praise": [
       "Так приятно заходить в отревьюиный проект)",
       "Я вижу, что вы очень постарались!",

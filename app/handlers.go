@@ -147,7 +147,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 		URL:      mrUrl,
 		AuthorID: &author.ID,
 	}
-	mr, err = a.DB.SaveMR(mr)
+	mr, err = a.DB.CreateMR(mr)
 	if err != nil {
 		return
 	}
@@ -193,7 +193,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 
 	msg += cutoff + "\n" + mrUrl
 
-	gitlabMrID, err := models.GetGitlabID(mr.URL)
+	gitlabMrID, err := mr.GetGitlabID()
 	if err != nil {
 		log.Println(err)
 		return err
@@ -220,7 +220,7 @@ func (a *App) updateReviews() error {
 		return nil
 	}
 	for _, mr := range mrs {
-		mr.GitlabID, err = models.GetGitlabID(mr.URL)
+		mr.GitlabID, err = mr.GetGitlabID()
 		if err != nil {
 			_ = ce.WrapWithLog(err, "Parse gitlab mr id")
 			continue
@@ -243,7 +243,7 @@ func (a *App) updateReviews() error {
 		return err
 	}
 	for _, mr := range closedMRs {
-		gitlabID, err := models.GetGitlabID(mr.URL)
+		gitlabID, err := mr.GetGitlabID()
 		if err != nil {
 			log.Printf("err parse gitlab id for mr=%v: %v", mr, err)
 			continue
@@ -351,7 +351,7 @@ func (a *App) reallocateUserMRs(u models.User) (err error) {
 			log.Println(ce.Wrap(err, "Reallocate MRs GetMrByID"))
 			continue
 		}
-		gitlabMrID, err := models.GetGitlabID(mr.URL)
+		gitlabMrID, err := mr.GetGitlabID()
 		if err != nil {
 			log.Println(ce.Wrap(err, "Reallocate MRs GetGitlabID"))
 			continue

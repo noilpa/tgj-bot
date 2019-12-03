@@ -1,13 +1,17 @@
 package app
 
 import (
+	"context"
 	"log"
 	"strings"
+	"time"
 
 	ce "tgj-bot/custom_errors"
 	db "tgj-bot/external_service/database"
 	gl "tgj-bot/external_service/gitlab"
+	"tgj-bot/external_service/jira"
 	tg "tgj-bot/external_service/telegram"
+	"tgj-bot/models"
 )
 
 type Config struct {
@@ -16,6 +20,7 @@ type Config struct {
 	Db       db.DbConfig     `json:"database"`
 	Rp       ReviewParty     `json:"review_party"`
 	Notifier NotifierConfig  `json:"notifier"`
+	Jira     jira.Config     `json:"jira"`
 }
 
 type ReviewParty struct {
@@ -37,6 +42,7 @@ type App struct {
 	Gitlab   gl.Client
 	DB       db.Client
 	Config   Config
+	Jira     *jira.Jira
 }
 
 type command string
@@ -53,6 +59,8 @@ const success = "Success! 👍"
 
 func (a *App) Serve() (err error) {
 	a.notify()
+	a.runCheckUpdates()
+
 	for update := range a.Telegram.Updates {
 		if update.Message == nil {
 			continue
@@ -101,4 +109,65 @@ func (a *App) isUserRegister(tgUsername string) (int, error) {
 		err = ce.WrapWithLog(err, ce.ErrUserNorRegistered.Error())
 	}
 	return int(u.ID), err
+}
+
+func (a *App) runCheckUpdates() {
+	go func() {
+		for _ = range time.Tick(time.Second) {
+			ctx := context.Background()
+			log.Println("updating mrs info from jira...")
+			mrs, err := a.DB.GetOpenedMRs()
+			if err != nil {
+				a.logError(err)
+				continue
+			}
+
+			for _, mr := range mrs {
+				if err := a.updateInfoFromJira(ctx, mr); err != nil {
+					a.logError(err)
+				}
+			}
+		}
+	}()
+}
+
+func (a *App) updateInfoFromJira(ctx context.Context, mr models.MR) error {
+	isChanged := false
+	if mr.JiraID == 0 {
+		gitlabID, err := mr.GetGitlabID()
+		if err != nil {
+			return err
+		}
+
+		title, err := a.Gitlab.GetMrTitle(gitlabID)
+		if err != nil {
+			return err
+		}
+
+		mr.ExtractJiraID(title)
+		isChanged = true
+	}
+
+	if mr.JiraID > 0 {
+		info, err := a.Jira.LoadIssueByID(ctx, mr.JiraID)
+		if err != nil {
+			return err
+		}
+		if info != nil {
+			mr.JiraPriority = info.Priority
+			isChanged = true
+		}
+	}
+
+	if isChanged {
+		if _, err := a.DB.SaveMR(mr); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (a *App) logError(err error) {
+	log.Println(err)
 }

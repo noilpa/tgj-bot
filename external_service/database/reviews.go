@@ -82,7 +82,8 @@ func (c *Client) GetOpenedReviewsByUserID(uID int) (rs []models.Review, err erro
 		  JOIN mrs m on reviews.mr_id = m.id
 		  WHERE user_id = $1 
 		    AND is_approved = FALSE
-		    AND m.is_closed = FALSE`
+		    AND m.is_closed = FALSE
+		  ORDER BY m.jira_priority DESC`
 	rows, err := c.db.Query(q, uID)
 	if err != nil {
 		return

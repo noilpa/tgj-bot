@@ -10,6 +10,7 @@
     "project_id": "1234567890-87654"
   },
   "jira": {
+    "update_tasks": false,
     "base_url": "https://jira.svc.iptv.rt.ru",
     "username": "nc_bot",
     "password": "pass"

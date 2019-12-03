@@ -112,6 +112,10 @@ func (a *App) isUserRegister(tgUsername string) (int, error) {
 }
 
 func (a *App) updateTasksFromJira() {
+	if !a.Config.Jira.UpdateTasks {
+		log.Println("skip updating tasks from jira")
+		return
+	}
 	go func() {
 		for _ = range time.Tick(time.Minute * 10) {
 			ctx := context.Background()

@@ -16,9 +16,10 @@ const (
 )
 
 type Config struct {
-	BaseURL  string `json:"base_url"`
-	Username string `json:"username"`
-	Password string `json:"password"`
+	BaseURL     string `json:"base_url"`
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	UpdateTasks bool   `json:"update_tasks"`
 }
 
 type Issue struct {

@@ -104,7 +104,8 @@ func (mr *MR) GetGitlabID() (int, error) {
 }
 
 func (mr *MR) IsHighest() bool {
-	return mr.JiraPriority == jira.PriorityHighest
+	return jira.PriorityHighest == mr.JiraPriority ||
+		jira.PriorityHigh == mr.JiraPriority
 }
 
 type Review struct {

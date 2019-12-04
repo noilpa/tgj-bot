@@ -19,8 +19,8 @@ func TestClient_SaveUser(t *testing.T) {
 				TelegramID:       th.String(),
 				TelegramUsername: th.String(),
 				Role:             th.Role(),
-				GitlabID: th.Int(),
-				GitlabName: th.String(),
+				GitlabID:         th.Int(),
+				GitlabName:       th.String(),
 			},
 			JiraID:   th.String(),
 			IsActive: th.Bool(),
@@ -28,7 +28,6 @@ func TestClient_SaveUser(t *testing.T) {
 		var err error
 		u.ID, err = f.SaveUser(u)
 		assert.NoError(t, err)
-
 
 		actU := f.getUser(u.TelegramUsername)
 		assert.Equal(t, u, actU)
@@ -148,20 +147,4 @@ func TestClient_GetUserForReallocateMR(t *testing.T) {
 	up, err := f.GetUserForReallocateMR(u[0].UserBrief, m1.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, u[2].ID, up.ID)
-}
-
-func TestClient_GetUsersByMrURL(t *testing.T) {
-	f := newFixture(t)
-	defer f.finish()
-
-	u := f.createUsersN(3)
-	m := f.createMR(u[0].ID)
-	reviews := make(map[int][]int)
-	reviews[u[1].ID] = []int{m.ID}
-	reviews[u[2].ID] = []int{m.ID}
-	f.createReviews(reviews)
-
-	us, err := f.GetUsersByMrURL(m.URL)
-	assert.NoError(t, err)
-	assert.Len(t, us, 2)
 }

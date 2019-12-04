@@ -34,6 +34,7 @@ type GitlabService interface {
 type GitlabConfig struct {
 	Token     string `json:"token"`
 	ProjectID string `json:"project_id"`
+	MRBaseURL string `json:"mr_base_url"`
 }
 
 type Client struct {

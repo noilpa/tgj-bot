@@ -103,16 +103,16 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 	args := strings.Split(strings.ToLower(argsStr), " ")
 
 	mrUrl := args[0]
-	mrID, err := models.GetGitlabID(mrUrl)
+	mrGitlabID, err := models.GetGitlabID(mrUrl)
 	if err != nil {
 		return
 	}
 
-	if a.isMrAlreadyExist(mrUrl) {
-		return a.returnMrParty(mrUrl)
+	if a.isMrAlreadyExist(mrGitlabID) {
+		return a.returnMrParty(mrGitlabID)
 	}
 
-	authorGitlabID, err := a.Gitlab.GetMrAuthorID(mrID)
+	authorGitlabID, err := a.Gitlab.GetMrAuthorID(mrGitlabID)
 	if err != nil {
 		return
 	}
@@ -146,6 +146,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 	mr := models.MR{
 		URL:      mrUrl,
 		AuthorID: &author.ID,
+		GitlabID: mrGitlabID,
 	}
 	mr, err = a.DB.CreateMR(mr)
 	if err != nil {
@@ -193,12 +194,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 
 	msg += cutoff + "\n" + mrUrl
 
-	gitlabMrID, err := mr.GetGitlabID()
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	if err = a.Gitlab.WriteReviewers(gitlabMrID, reviewPartyBrief); err != nil {
+	if err = a.Gitlab.WriteReviewers(mr.GitlabID, reviewPartyBrief); err != nil {
 		log.Println(err)
 		return
 	}
@@ -220,11 +216,6 @@ func (a *App) updateReviews() error {
 		return nil
 	}
 	for _, mr := range mrs {
-		mr.GitlabID, err = mr.GetGitlabID()
-		if err != nil {
-			_ = ce.WrapWithLog(err, "Parse gitlab mr id")
-			continue
-		}
 		mrIsOpen, err := a.Gitlab.MrIsOpen(mr.GitlabID)
 		log.Printf("Update reviews mr_id=%d is_open=%v", mr.ID, mrIsOpen)
 		if !mrIsOpen {
@@ -243,16 +234,11 @@ func (a *App) updateReviews() error {
 		return err
 	}
 	for _, mr := range closedMRs {
-		gitlabID, err := mr.GetGitlabID()
-		if err != nil {
-			log.Printf("err parse gitlab id for mr=%v: %v", mr, err)
+		if err = a.Gitlab.SetLabelToMR(mr.GitlabID, models.ReviewedLabel); err != nil {
+			log.Printf("err set label for mr_id=%d: %v", mr.GitlabID, err)
 			continue
 		}
-		if err = a.Gitlab.SetLabelToMR(gitlabID, models.ReviewedLabel); err != nil {
-			log.Printf("err set label for mr_id=%d: %v", gitlabID, err)
-			continue
-		}
-		log.Printf("successfully set label for mr_id=%d", gitlabID)
+		log.Printf("successfully set label for mr_id=%d", mr.GitlabID)
 	}
 
 	return nil
@@ -351,17 +337,12 @@ func (a *App) reallocateUserMRs(u models.User) (err error) {
 			log.Println(ce.Wrap(err, "Reallocate MRs GetMrByID"))
 			continue
 		}
-		gitlabMrID, err := mr.GetGitlabID()
-		if err != nil {
-			log.Println(ce.Wrap(err, "Reallocate MRs GetGitlabID"))
-			continue
-		}
 		reviewers, err := a.DB.GetUsersByMrID(mrID)
 		if err != nil {
 			log.Println(ce.Wrap(err, "Reallocate MRs GetUsersByMrID"))
 			continue
 		}
-		err = a.Gitlab.WriteReviewers(gitlabMrID, reviewers)
+		err = a.Gitlab.WriteReviewers(mr.GitlabID, reviewers)
 		if err != nil {
 			log.Println(ce.Wrap(err, "Reallocate MRs WriteReviewers"))
 			continue
@@ -384,8 +365,8 @@ func (a *App) skipWeekends(endTime int64) (newEndTime int64) {
 	return
 }
 
-func (a *App) isMrAlreadyExist(url string) bool {
-	mr, err := a.DB.GetMRbyURL(url)
+func (a *App) isMrAlreadyExist(mrID int) bool {
+	mr, err := a.DB.GetMrByID(mrID)
 	if err != nil {
 		return false
 	}
@@ -396,13 +377,13 @@ func (a *App) isMrAlreadyExist(url string) bool {
 	return false
 }
 
-func (a *App) returnMrParty(url string) (err error) {
-	us, err := a.DB.GetUsersByMrURL(url)
+func (a *App) returnMrParty(mrID int) (err error) {
+	us, err := a.DB.GetUsersByMrID(mrID)
 	msg := "Review party:\n"
 	for i, u := range us {
 		msg += fmt.Sprintf("%s %s\n", pointEmoji[i%2], u.TelegramUsername)
 	}
-	msg += cutoff + fmt.Sprintf("\n%s", url)
+	msg += cutoff + fmt.Sprintf("\n%s", a.createMrURL(mrID))
 	a.Telegram.SendMessage(msg)
 	return
 }
@@ -423,6 +404,10 @@ func (a *App) getGitlabInfo(arg string) (int, string, error) {
 	}
 
 	return id, name, nil
+}
+
+func (a *App) createMrURL(mrID int) string {
+	return a.Config.Gl.MRBaseURL + "/" + strconv.Itoa(mrID)
 }
 
 func getParticipants(users models.UsersPayload, cfg ReviewParty) (rp models.UsersPayload, err error) {

@@ -58,6 +58,9 @@ const (
 const success = "Success! 👍"
 
 func (a *App) Serve() (err error) {
+	if err := a.migrateData(); err != nil {
+		return err
+	}
 	a.notify()
 	a.updateTasksFromJira()
 
@@ -138,12 +141,7 @@ func (a *App) updateTasksFromJira() {
 func (a *App) updateTaskFromJira(ctx context.Context, mr models.MR) error {
 	isChanged := false
 	if mr.JiraID == 0 {
-		gitlabID, err := mr.GetGitlabID()
-		if err != nil {
-			return err
-		}
-
-		title, err := a.Gitlab.GetMrTitle(gitlabID)
+		title, err := a.Gitlab.GetMrTitle(mr.GitlabID)
 		if err != nil {
 			return err
 		}
@@ -168,6 +166,34 @@ func (a *App) updateTaskFromJira(ctx context.Context, mr models.MR) error {
 			return err
 		}
 	}
+
+	return nil
+}
+
+func (a *App) migrateData() error {
+	log.Println("migrate data started...")
+
+	// fill gitlab_id from url in MRS
+	mrs, err := a.DB.GetAllMRs()
+	if err != nil {
+		return err
+	}
+	for _, mr := range mrs {
+		if mr.IsClosed || mr.GitlabID > 0 {
+			continue
+		}
+
+		gitlabID, err := models.GetGitlabID(mr.URL)
+		if err != nil {
+			return err
+		}
+		mr.GitlabID = gitlabID
+		if _, err := a.DB.SaveMR(mr); err != nil {
+			return err
+		}
+	}
+
+	log.Println("migrating data finished")
 
 	return nil
 }

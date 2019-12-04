@@ -76,16 +76,11 @@ func (a *App) notify() {
 					log.Printf("err close mrs: %v", err)
 				}
 				for _, mr := range mrs {
-					gitlabID, err := mr.GetGitlabID()
-					if err != nil {
-						log.Printf("err parse gitlab id for mr=%v: %v", mr, err)
+					if err = a.Gitlab.SetLabelToMR(mr.GitlabID, models.ReviewedLabel); err != nil {
+						log.Printf("err set label for mr_id=%d: %v", mr.GitlabID, err)
 						continue
 					}
-					if err = a.Gitlab.SetLabelToMR(gitlabID, models.ReviewedLabel); err != nil {
-						log.Printf("err set label for mr_id=%d: %v", gitlabID, err)
-						continue
-					}
-					log.Printf("successfully set label for mr_id=%d", gitlabID)
+					log.Printf("successfully set label for mr_id=%d", mr.GitlabID)
 				}
 
 				messagesCount := 0

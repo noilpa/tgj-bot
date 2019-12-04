@@ -7,6 +7,7 @@ import (
 	"time"
 
 	ce "tgj-bot/custom_errors"
+	"tgj-bot/external_service/jira"
 	"tgj-bot/models"
 )
 
@@ -16,6 +17,13 @@ const (
 )
 
 var (
+	priorityEmoji = map[int]string{
+		jira.PriorityHighest: "🔥",
+		jira.PriorityHigh:    "🔥",
+		jira.PriorityMedium:  "🔸",
+		jira.PriorityLow:     "🔹",
+		jira.PriorityLowest:  "🔹",
+	}
 	pointEmoji = []string{"🔹", "🔸"}
 	sadEmoji   = []string{"😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "☺", "️🙂", "🤗", "🤔", "😐",
 		"😑", "😶", "🙄", "😏", "😣", "😥", "😮", "🤐", "😯", "😪", "😫", "😴", "😌", "😛", "😜", "😝", "🤤", "😒", "😓",
@@ -68,7 +76,7 @@ func (a *App) notify() {
 					log.Printf("err close mrs: %v", err)
 				}
 				for _, mr := range mrs {
-					gitlabID, err := models.GetGitlabID(mr.URL)
+					gitlabID, err := mr.GetGitlabID()
 					if err != nil {
 						log.Printf("err parse gitlab id for mr=%v: %v", mr, err)
 						continue
@@ -116,14 +124,14 @@ func (a *App) buildNotifierMRString(uID int) (s string, err error) {
 	}
 	log.Printf("User %d opened reviews: %v\n", uID, rs)
 
-	for i, r := range rs {
+	for _, r := range rs {
 		if time.Now().Unix() > r.UpdatedAt+a.Config.Notifier.Delay {
 			mr, err := a.DB.GetMrByID(r.MrID)
 			if err != nil {
 				err = ce.WrapWithLog(err, "notifier build message")
 				return s, err
 			}
-			s += fmt.Sprintf("%s %s\n", pointEmoji[i%2], mr.URL)
+			s += fmt.Sprintf("%s %s\n", getPriorityEmoji(mr.JiraPriority), mr.URL)
 		}
 	}
 	return
@@ -137,10 +145,17 @@ func randJoyEmoji() string {
 	return joyEmoji[rand.Intn(len(joyEmoji))]
 }
 
+func getPriorityEmoji(priority int) string {
+	if icon, ok := priorityEmoji[priority]; ok {
+		return icon
+	}
+	return ""
+}
+
 func (a App) praise() string {
-	return a.Config.Notifier.Praise[rand.Intn(len(a.Config.Notifier.Praise))] + randJoyEmoji()
+	return a.Config.Notifier.Praise[rand.Intn(len(a.Config.Notifier.Praise))] + " " + randJoyEmoji()
 }
 
 func (a App) motivate() string {
-	return a.Config.Notifier.Motivate[rand.Intn(len(a.Config.Notifier.Motivate))] + randJoyEmoji()
+	return a.Config.Notifier.Motivate[rand.Intn(len(a.Config.Notifier.Motivate))] + " " + randJoyEmoji()
 }

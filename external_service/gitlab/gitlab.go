@@ -15,12 +15,12 @@ import (
 )
 
 const (
-	opened = "opened"
-	closed = "closed"
-	locked = "locked"
-	merged = "merged"
+	opened       = "opened"
+	closed       = "closed"
+	locked       = "locked"
+	merged       = "merged"
 	startComment = "Reviewers: "
-	endComment = "//"
+	endComment   = "//"
 )
 
 type GitlabService interface {
@@ -28,6 +28,7 @@ type GitlabService interface {
 	CheckMrComments(mrID int) (users map[int]struct{}, err error)
 	GetMrAuthorID(mrID int) (int, error)
 	MrIsOpen(mrID int) (bool, error)
+	GetMrTitle(mrID int) (string, error)
 }
 
 type GitlabConfig struct {
@@ -129,7 +130,7 @@ func (c *Client) GetUserByID(gitlabID int) (name string, err error) {
 	return user.Username, nil
 }
 
-func (c *Client) GetUserByName(gitlabName string) (id int, err error){
+func (c *Client) GetUserByName(gitlabName string) (id int, err error) {
 	options := &gitlab.ListUsersOptions{Username: &gitlabName}
 	userList, _, err := c.Gitlab.Users.ListUsers(options)
 	log.Println("Get user by gitlab name:", userList)
@@ -164,14 +165,33 @@ func (c *Client) WriteReviewers(mrID int, reviewers []models.UserBrief) error {
 }
 
 func (c *Client) getMrDescription(mrID int) (description string, err error) {
-	mr, resp, err := c.Gitlab.MergeRequests.GetMergeRequest(c.Project.ID, mrID, nil)
-	respBody, _ := ioutil.ReadAll(resp.Body)
-	log.Println("Get mr description:", string(respBody))
+	mr, err := c.loadMR(mrID)
 	if err != nil {
-		return
+		log.Println("Get mr description:", err)
+		if err != nil {
+			return
+		}
 	}
 
 	return mr.Description, nil
+}
+
+func (c *Client) GetMrTitle(mrID int) (string, error) {
+	mr, err := c.loadMR(mrID)
+	if err != nil {
+		return "", err
+	}
+
+	return mr.Title, nil
+}
+
+func (c *Client) loadMR(mrID int) (*gitlab.MergeRequest, error) {
+	mr, _, err := c.Gitlab.MergeRequests.GetMergeRequest(c.Project.ID, mrID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return mr, nil
 }
 
 func removeReviewersFromDescription(description string) string {

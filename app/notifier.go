@@ -7,6 +7,7 @@ import (
 	"time"
 
 	ce "tgj-bot/custom_errors"
+	"tgj-bot/external_service/jira"
 	"tgj-bot/models"
 )
 
@@ -16,9 +17,15 @@ const (
 )
 
 var (
-	highestEmoji = "🔥"
-	pointEmoji   = []string{"🔹", "🔸"}
-	sadEmoji     = []string{"😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "☺", "️🙂", "🤗", "🤔", "😐",
+	priorityEmoji = map[int]string{
+		jira.PriorityHighest: "🔥",
+		jira.PriorityHigh:    "🔥",
+		jira.PriorityMedium:  "🔸",
+		jira.PriorityLow:     "🔹",
+		jira.PriorityLowest:  "🔹",
+	}
+	pointEmoji = []string{"🔹", "🔸"}
+	sadEmoji   = []string{"😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "☺", "️🙂", "🤗", "🤔", "😐",
 		"😑", "😶", "🙄", "😏", "😣", "😥", "😮", "🤐", "😯", "😪", "😫", "😴", "😌", "😛", "😜", "😝", "🤤", "😒", "😓",
 		"😔", "😕", "🙃", "🤑", "😲", "☹", "️🙁", "😖", "😞", "😟", "😤", "😢", "😭", "😦", "😧", "😨", "😩"}
 	joyEmoji = []string{"😉", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "☺", "️😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "😘",
@@ -117,18 +124,14 @@ func (a *App) buildNotifierMRString(uID int) (s string, err error) {
 	}
 	log.Printf("User %d opened reviews: %v\n", uID, rs)
 
-	for i, r := range rs {
+	for _, r := range rs {
 		if time.Now().Unix() > r.UpdatedAt+a.Config.Notifier.Delay {
 			mr, err := a.DB.GetMrByID(r.MrID)
 			if err != nil {
 				err = ce.WrapWithLog(err, "notifier build message")
 				return s, err
 			}
-			priority := ""
-			if mr.IsHighest() {
-				priority = " " + highestEmoji
-			}
-			s += fmt.Sprintf("%s%s %s\n", pointEmoji[i%2], priority, mr.URL)
+			s += fmt.Sprintf("%s %s\n", getPriorityEmoji(mr.JiraPriority), mr.URL)
 		}
 	}
 	return
@@ -140,6 +143,13 @@ func randSadEmoji() string {
 
 func randJoyEmoji() string {
 	return joyEmoji[rand.Intn(len(joyEmoji))]
+}
+
+func getPriorityEmoji(priority int) string {
+	if icon, ok := priorityEmoji[priority]; ok {
+		return icon
+	}
+	return ""
 }
 
 func (a App) praise() string {

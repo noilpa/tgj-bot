@@ -11,8 +11,8 @@
   },
   "jira": {
     "update_tasks": false,
-    "base_url": "https://jira.svc.iptv.rt.ru",
-    "username": "nc_bot",
+    "base_url": "url",
+    "username": "user",
     "password": "pass"
   },
   "database": {

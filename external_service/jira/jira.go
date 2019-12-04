@@ -10,7 +10,9 @@ import (
 
 const (
 	PriorityUndefined = 0
-	PriorityNormal    = 10
+	PriorityLowest    = 5
+	PriorityLow       = 7
+	PriorityMedium    = 10
 	PriorityHigh      = 15
 	PriorityHighest   = 20
 )
@@ -60,12 +62,17 @@ func (jir *Jira) LoadIssueByID(ctx context.Context, ID int) (*Issue, error) {
 	}
 
 	priority := PriorityUndefined
-	if issue.Fields.Priority.Name == "Highest" {
+	switch issue.Fields.Priority.Name {
+	case "Highest":
 		priority = PriorityHighest
-	} else if issue.Fields.Priority.Name == "High" {
+	case "High":
 		priority = PriorityHigh
-	} else {
-		priority = PriorityNormal
+	case "Medium":
+		priority = PriorityMedium
+	case "Low":
+		priority = PriorityLow
+	case "Lowest":
+		priority = PriorityLowest
 	}
 
 	item := &Issue{

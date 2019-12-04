@@ -49,6 +49,13 @@ func NewJira(conf Config) (*Jira, error) {
 		return nil, errors.Wrap(err, "failed init jira client")
 	}
 
+	if conf.UpdateTasks {
+		// ping Jira
+		if _, _, err := client.User.GetSelf(); err != nil {
+			return nil, errors.Wrapf(err, "jira not available")
+		}
+	}
+
 	return &Jira{
 		conf:   conf,
 		client: client,

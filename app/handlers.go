@@ -213,7 +213,7 @@ func (a *App) updateReviews() error {
 	//
 	mrs, err := a.DB.GetOpenedMRs()
 	if err != nil {
-		return nil
+		return err
 	}
 	for _, mr := range mrs {
 		mrIsOpen, err := a.Gitlab.MrIsOpen(mr.GitlabID)
@@ -239,6 +239,13 @@ func (a *App) updateReviews() error {
 			continue
 		}
 		log.Printf("successfully set label for mr_id=%d", mr.GitlabID)
+
+		if mr.IsOnReview() {
+			if err := a.notifyReviewTask(mr); err != nil {
+				log.Printf("err notify task mr_id=%d: %v", mr.GitlabID, err)
+				continue
+			}
+		}
 	}
 
 	return nil

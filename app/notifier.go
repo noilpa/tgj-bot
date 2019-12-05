@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	greeting = "🚀 Daily notification 🌞"
-	cutoff   = "-----------------------"
+	greeting         = "🚀 Daily notification 🌞"
+	cutoff           = "-----------------------"
+	moveTaskToQAText = "please move task to QA:"
 )
 
 var (
@@ -38,7 +39,6 @@ func (a *App) notify() {
 	//
 	// слать нотификации в определенное время Time
 	// если не получены лайки и коменты за время Delay
-	// пересчитывать лайки и комменты перед нотификацией
 	//
 	if !a.Config.Notifier.IsAllow {
 		log.Println("Notifications does not allow in config")
@@ -59,30 +59,12 @@ func (a *App) notify() {
 			}
 
 			if t.Hour() >= a.Config.Notifier.TimeHour && t.Minute() >= a.Config.Notifier.TimeMinute && !isNotified {
-				// main logic
-				if err := a.updateReviews(); err != nil {
-					log.Println(ce.Wrap(err, "notifier update reviews"))
-					continue
-				}
-
 				us, err := a.DB.GetActiveUsers()
 				if err != nil {
 					log.Println(ce.Wrap(err, "notifier update reviews"))
 					continue
 				}
 				log.Printf("Notifier active users %v", us)
-
-				mrs, err := a.DB.CloseMRs()
-				if err != nil {
-					log.Printf("err close mrs: %v", err)
-				}
-				for _, mr := range mrs {
-					if err = a.Gitlab.SetLabelToMR(mr.GitlabID, models.ReviewedLabel); err != nil {
-						log.Printf("err set label for mr_id=%d: %v", mr.GitlabID, err)
-						continue
-					}
-					log.Printf("successfully set label for mr_id=%d", mr.GitlabID)
-				}
 
 				messagesCount := 0
 				msg := greeting + "\n"
@@ -152,6 +134,18 @@ func (a *App) buildNotifierMRString(uID int) (s string, err error) {
 		}
 	}
 	return
+}
+
+func (a *App) notifyReviewTask(mr models.MR) error {
+	user, err := a.DB.GetUserByID(*mr.AuthorID)
+	if err != nil {
+		return err
+	}
+
+	msg := fmt.Sprintf("%s @%s, %s %s", readyToQAEmoji, user.TelegramUsername, moveTaskToQAText, mr.URL)
+	a.Telegram.SendMessage(msg)
+
+	return nil
 }
 
 func randSadEmoji() string {

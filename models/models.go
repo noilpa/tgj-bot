@@ -105,6 +105,10 @@ func (mr *MR) IsHighest() bool {
 		jira.PriorityHigh == mr.JiraPriority
 }
 
+func (mr *MR) IsOnReview() bool {
+	return mr.JiraStatus == jira.StatusOnReview
+}
+
 type Review struct {
 	MrID        int
 	UserID      int

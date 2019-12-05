@@ -63,6 +63,7 @@ func (a *App) Serve() (err error) {
 	}
 	a.notify()
 	a.updateTasksFromJira()
+	a.updateStateFromGitlab()
 
 	for update := range a.Telegram.Updates {
 		if update.Message == nil {
@@ -112,6 +113,23 @@ func (a *App) isUserRegister(tgUsername string) (int, error) {
 		err = ce.WrapWithLog(err, ce.ErrUserNorRegistered.Error())
 	}
 	return int(u.ID), err
+}
+
+func (a *App) updateStateFromGitlab() {
+	if !a.Config.Notifier.IsAllow {
+		log.Println("Notifications does not allow in config")
+		return
+	}
+
+	go func() {
+		for _ = range time.Tick(time.Minute * 10) {
+			log.Println("update state from gitlab...")
+			if err := a.updateReviews(); err != nil {
+				log.Println(ce.Wrap(err, "notifier update reviews"))
+				continue
+			}
+		}
+	}()
 }
 
 func (a *App) updateTasksFromJira() {

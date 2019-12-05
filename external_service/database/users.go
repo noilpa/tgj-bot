@@ -179,3 +179,14 @@ func (c *Client) GetActiveUsers() (us models.UserList, err error) {
 	}
 	return
 }
+
+func (c *Client) GetUserByID(ID int) (u models.User, err error) {
+	q := `SELECT id, telegram_id, telegram_username, gitlab_id, jira_id, is_active, role, gitlab_name 
+		  FROM users WHERE id = $1`
+	err = c.db.QueryRow(q, ID).Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.GitlabID, &u.JiraID, &u.IsActive, &u.Role, &u.GitlabName)
+	if err != nil {
+		err = ce.WrapWithLog(err, "get user by telegram username")
+		return
+	}
+	return
+}

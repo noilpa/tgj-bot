@@ -118,3 +118,35 @@ func TestClient_CloseMRs(t *testing.T) {
 		assert.False(t, aMr.IsClosed)
 	})
 }
+
+func TestClient_GetUserClosedMRs(t *testing.T) {
+	f := newFixture(t)
+	defer f.finish()
+
+	user := f.createUser()
+	user3 := f.createUser()
+
+	items := []models.MR{
+		{AuthorID: &user.ID, IsClosed: true, JiraStatus: 10, URL: th.String()},
+		{AuthorID: &user.ID, IsClosed: false, JiraStatus: 10, URL: th.String()},
+		{AuthorID: &user3.ID, IsClosed: true, JiraStatus: 10, URL: th.String()},
+		{AuthorID: &user.ID, IsClosed: true, JiraStatus: 20, URL: th.String()},
+		{AuthorID: &user.ID, IsClosed: true, JiraStatus: 10, URL: th.String()},
+	}
+
+	for index, item := range items {
+		newMr, err := f.CreateMR(item)
+		assert.NoError(t, err)
+
+		items[index] = newMr
+	}
+
+	expValues := []models.MR{
+		items[0],
+		items[4],
+	}
+
+	values, err := f.GetUserClosedMRs(user.ID, 10)
+	assert.NoError(t, err)
+	assert.EqualValues(t, expValues, values)
+}

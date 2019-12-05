@@ -52,7 +52,7 @@ func RunGitlab(cfg GitlabConfig) (client Client, err error) {
 	if client.Project, _, err = client.Gitlab.Projects.GetProject(cfg.ProjectID, nil); err != nil {
 		return
 	}
-	log.Printf("Gitlab Project: %v", client.Project.String())
+	log.Printf("Gitlab Project: %v", client.Project.ID)
 	return
 }
 

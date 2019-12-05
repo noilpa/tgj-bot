@@ -24,8 +24,9 @@ var (
 		jira.PriorityLow:     "🔹",
 		jira.PriorityLowest:  "🔹",
 	}
-	pointEmoji = []string{"🔹", "🔸"}
-	sadEmoji   = []string{"😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "☺", "️🙂", "🤗", "🤔", "😐",
+	readyToQAEmoji = "✈️"
+	pointEmoji     = []string{"🔹", "🔸"}
+	sadEmoji       = []string{"😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "☺", "️🙂", "🤗", "🤔", "😐",
 		"😑", "😶", "🙄", "😏", "😣", "😥", "😮", "🤐", "😯", "😪", "😫", "😴", "😌", "😛", "😜", "😝", "🤤", "😒", "😓",
 		"😔", "😕", "🙃", "🤑", "😲", "☹", "️🙁", "😖", "😞", "😟", "😤", "😢", "😭", "😦", "😧", "😨", "😩"}
 	joyEmoji = []string{"😉", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "☺", "️😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "😘",
@@ -86,15 +87,22 @@ func (a *App) notify() {
 				messagesCount := 0
 				msg := greeting + "\n"
 				for _, u := range us {
+					qaTaskStr, err := a.buildNotifierQATask(u.ID)
+					if err != nil {
+						log.Println(ce.Wrap(err, "notifier qa task"))
+						continue
+					}
+
 					mrStr, err := a.buildNotifierMRString(u.ID)
 					if err != nil {
 						log.Println(ce.Wrap(err, "notifier update reviews"))
 						continue
 					}
-					log.Printf("Notifier MR string for user %d: %v\n", u.ID, mrStr)
 
-					if mrStr != "" {
-						msg += fmt.Sprintf("%s\n@%s %s\n%s", cutoff, u.TelegramUsername, randSadEmoji(), mrStr)
+					log.Printf("Notifier string for user %d: %s %s\n", u.ID, mrStr, qaTaskStr)
+
+					if len(mrStr) > 0 || len(qaTaskStr) > 0 {
+						msg += fmt.Sprintf("%s\n@%s %s\n%s%s", cutoff, u.TelegramUsername, randSadEmoji(), qaTaskStr, mrStr)
 						messagesCount++
 					}
 				}
@@ -108,7 +116,21 @@ func (a *App) notify() {
 			}
 		}
 	}()
+}
 
+func (a *App) buildNotifierQATask(uID int) (str string, err error) {
+	mrs, err := a.DB.GetUserClosedMRs(uID, jira.StatusOnReview)
+	if err != nil {
+		err = ce.WrapWithLog(err, "notifier build message")
+		return
+	}
+	log.Printf("User %d mrs:%d\n", uID, len(mrs))
+
+	for _, mr := range mrs {
+		str += fmt.Sprintf("%s %s\n", readyToQAEmoji, mr.URL)
+	}
+
+	return
 }
 
 func (a *App) buildNotifierMRString(uID int) (s string, err error) {

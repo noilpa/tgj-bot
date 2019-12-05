@@ -90,6 +90,7 @@ func (c *Client) initSchema() (err error) {
 					jira_id INTEGER NOT NULL DEFAULT 0,
 					jira_priority INTEGER NOT NULL DEFAULT 0,
 					gitlab_id INTEGER NOT NULL DEFAULT 0,
+					jira_status INTEGER NOT NULL DEFAULT 0,
 					FOREIGN KEY(author_id) REFERENCES users(id));`
 
 	createReviews := `CREATE TABLE IF NOT EXISTS reviews (

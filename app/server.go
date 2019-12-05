@@ -151,12 +151,13 @@ func (a *App) updateTaskFromJira(ctx context.Context, mr models.MR) error {
 	}
 
 	if mr.JiraID > 0 {
-		info, err := a.Jira.LoadIssueByID(ctx, mr.JiraID)
+		jiraIssue, err := a.Jira.LoadIssueByID(ctx, mr.JiraID)
 		if err != nil {
 			return err
 		}
-		if info != nil {
-			mr.JiraPriority = info.Priority
+		if jiraIssue != nil {
+			mr.JiraPriority = jiraIssue.Priority
+			mr.JiraStatus = jiraIssue.Status
 			isChanged = true
 		}
 	}

@@ -87,6 +87,7 @@ type MR struct {
 	GitlabID     int
 	JiraID       int
 	JiraPriority int
+	JiraStatus   int
 }
 
 func (mr *MR) ExtractJiraID(title string) {

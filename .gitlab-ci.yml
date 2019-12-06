@@ -8,7 +8,7 @@ variables:
   POSTGRES_PASSWORD: tgj_bot_user
   POSTGRES_DB: tgj_bot_db
   DOCKER_TLS_CERTDIR: ''
-  DOCKER_HOST: tcp://docker:2375/
+  DOCKER_HOST: tcp://localhost:2375/
   DOCKER_DRIVER: overlay2
 
 before_script:

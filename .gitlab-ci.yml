@@ -16,7 +16,7 @@ before_script:
   - export IMAGE_NAME_LATEST=${DOCKER_REGISTRY}/${IMAGE_DIR}:latest
 
 services:
-  - docker:18-dind
+  - docker:dind
   - postgres:latest
 
 stages:

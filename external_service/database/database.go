@@ -31,6 +31,7 @@ type MergeRequestRepository interface {
 	CloseMRs() error
 	GetMrByID(id int) (mr models.MR, err error)
 	GetMRbyURL(url string) (mr models.MR, err error)
+	GetAllMRs() ([]models.MR, error)
 }
 
 type ReviewRepository interface {
@@ -88,6 +89,8 @@ func (c *Client) initSchema() (err error) {
 					is_closed BOOLEAN DEFAULT FALSE,
 					jira_id INTEGER NOT NULL DEFAULT 0,
 					jira_priority INTEGER NOT NULL DEFAULT 0,
+					gitlab_id INTEGER NOT NULL DEFAULT 0,
+					jira_status INTEGER NOT NULL DEFAULT 0,
 					FOREIGN KEY(author_id) REFERENCES users(id));`
 
 	createReviews := `CREATE TABLE IF NOT EXISTS reviews (

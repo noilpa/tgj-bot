@@ -87,6 +87,7 @@ type MR struct {
 	GitlabID     int
 	JiraID       int
 	JiraPriority int
+	JiraStatus   int
 }
 
 func (mr *MR) ExtractJiraID(title string) {
@@ -99,13 +100,13 @@ func (mr *MR) ExtractJiraID(title string) {
 	}
 }
 
-func (mr *MR) GetGitlabID() (int, error) {
-	return GetGitlabID(mr.URL)
-}
-
 func (mr *MR) IsHighest() bool {
 	return jira.PriorityHighest == mr.JiraPriority ||
 		jira.PriorityHigh == mr.JiraPriority
+}
+
+func (mr *MR) IsOnReview() bool {
+	return mr.JiraStatus == jira.StatusOnReview
 }
 
 type Review struct {

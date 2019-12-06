@@ -58,8 +58,12 @@ const (
 const success = "Success! 👍"
 
 func (a *App) Serve() (err error) {
+	if err := a.migrateData(); err != nil {
+		return err
+	}
 	a.notify()
 	a.updateTasksFromJira()
+	a.updateStateFromGitlab()
 
 	for update := range a.Telegram.Updates {
 		if update.Message == nil {
@@ -111,6 +115,23 @@ func (a *App) isUserRegister(tgUsername string) (int, error) {
 	return int(u.ID), err
 }
 
+func (a *App) updateStateFromGitlab() {
+	if !a.Config.Notifier.IsAllow {
+		log.Println("Notifications does not allow in config")
+		return
+	}
+
+	go func() {
+		for _ = range time.Tick(time.Minute * 10) {
+			log.Println("update state from gitlab...")
+			if err := a.updateReviews(); err != nil {
+				log.Println(ce.Wrap(err, "notifier update reviews"))
+				continue
+			}
+		}
+	}()
+}
+
 func (a *App) updateTasksFromJira() {
 	if !a.Config.Jira.UpdateTasks {
 		log.Println("skip updating tasks from jira")
@@ -138,12 +159,7 @@ func (a *App) updateTasksFromJira() {
 func (a *App) updateTaskFromJira(ctx context.Context, mr models.MR) error {
 	isChanged := false
 	if mr.JiraID == 0 {
-		gitlabID, err := mr.GetGitlabID()
-		if err != nil {
-			return err
-		}
-
-		title, err := a.Gitlab.GetMrTitle(gitlabID)
+		title, err := a.Gitlab.GetMrTitle(mr.GitlabID)
 		if err != nil {
 			return err
 		}
@@ -153,12 +169,13 @@ func (a *App) updateTaskFromJira(ctx context.Context, mr models.MR) error {
 	}
 
 	if mr.JiraID > 0 {
-		info, err := a.Jira.LoadIssueByID(ctx, mr.JiraID)
+		jiraIssue, err := a.Jira.LoadIssueByID(ctx, mr.JiraID)
 		if err != nil {
 			return err
 		}
-		if info != nil {
-			mr.JiraPriority = info.Priority
+		if jiraIssue != nil {
+			mr.JiraPriority = jiraIssue.Priority
+			mr.JiraStatus = jiraIssue.Status
 			isChanged = true
 		}
 	}
@@ -168,6 +185,34 @@ func (a *App) updateTaskFromJira(ctx context.Context, mr models.MR) error {
 			return err
 		}
 	}
+
+	return nil
+}
+
+func (a *App) migrateData() error {
+	log.Println("migrate data started...")
+
+	// fill gitlab_id from url in MRS
+	mrs, err := a.DB.GetAllMRs()
+	if err != nil {
+		return err
+	}
+	for _, mr := range mrs {
+		if mr.IsClosed || mr.GitlabID > 0 {
+			continue
+		}
+
+		gitlabID, err := models.GetGitlabID(mr.URL)
+		if err != nil {
+			return err
+		}
+		mr.GitlabID = gitlabID
+		if _, err := a.DB.SaveMR(mr); err != nil {
+			return err
+		}
+	}
+
+	log.Println("migrating data finished")
 
 	return nil
 }

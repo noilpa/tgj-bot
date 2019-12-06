@@ -34,6 +34,7 @@ type GitlabService interface {
 type GitlabConfig struct {
 	Token     string `json:"token"`
 	ProjectID string `json:"project_id"`
+	MRBaseURL string `json:"mr_base_url"`
 }
 
 type Client struct {
@@ -51,7 +52,7 @@ func RunGitlab(cfg GitlabConfig) (client Client, err error) {
 	if client.Project, _, err = client.Gitlab.Projects.GetProject(cfg.ProjectID, nil); err != nil {
 		return
 	}
-	log.Printf("Gitlab Project: %v", client.Project.String())
+	log.Printf("Gitlab Project: %v", client.Project.ID)
 	return
 }
 

@@ -130,32 +130,6 @@ func (c *Client) GetUsersByMrID(id int) (us []models.UserBrief, err error) {
 	return
 }
 
-func (c *Client) GetUsersByMrURL(url string) (us []models.UserBrief, err error) {
-	q := `SELECT id, telegram_id, telegram_username, role, gitlab_id, gitlab_name 
-		  FROM users 
-		  WHERE id IN (SELECT user_id 
-		  			   FROM reviews 
-		  			   WHERE mr_id = (SELECT id 
-		  			   				  FROM mrs 
-		  			   				  WHERE url = $1))`
-	rows, err := c.db.Query(q, url)
-	if err != nil {
-		err = ce.WrapWithLog(err, "get users by mr url")
-		return
-	}
-	defer rows.Close()
-
-	var u models.UserBrief
-	for rows.Next() {
-		if err = rows.Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.Role, &u.GitlabID, &u.GitlabName); err != nil {
-			err = ce.WrapWithLog(err, "get users by mr url scan")
-			return
-		}
-		us = append(us, u)
-	}
-	return
-}
-
 func (c *Client) GetUserForReallocateMR(u models.UserBrief, mID int) (up models.UserPayload, err error) {
 
 	q := `SELECT id, 
@@ -202,6 +176,17 @@ func (c *Client) GetActiveUsers() (us models.UserList, err error) {
 			return
 		}
 		us = append(us, u)
+	}
+	return
+}
+
+func (c *Client) GetUserByID(ID int) (u models.User, err error) {
+	q := `SELECT id, telegram_id, telegram_username, gitlab_id, jira_id, is_active, role, gitlab_name 
+		  FROM users WHERE id = $1`
+	err = c.db.QueryRow(q, ID).Scan(&u.ID, &u.TelegramID, &u.TelegramUsername, &u.GitlabID, &u.JiraID, &u.IsActive, &u.Role, &u.GitlabName)
+	if err != nil {
+		err = ce.WrapWithLog(err, "get user by telegram username")
+		return
 	}
 	return
 }

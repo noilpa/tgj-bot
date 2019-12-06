@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	greeting = "🚀 Daily notification 🌞"
-	cutoff   = "-----------------------"
+	greeting         = "🚀 Daily notification 🌞"
+	cutoff           = "-----------------------"
+	moveTaskToQAText = "please move task to QA:"
 )
 
 var (
@@ -24,8 +25,9 @@ var (
 		jira.PriorityLow:     "🔹",
 		jira.PriorityLowest:  "🔹",
 	}
-	pointEmoji = []string{"🔹", "🔸"}
-	sadEmoji   = []string{"😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "☺", "️🙂", "🤗", "🤔", "😐",
+	readyToQAEmoji = "✈️"
+	pointEmoji     = []string{"🔹", "🔸"}
+	sadEmoji       = []string{"😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "☺", "️🙂", "🤗", "🤔", "😐",
 		"😑", "😶", "🙄", "😏", "😣", "😥", "😮", "🤐", "😯", "😪", "😫", "😴", "😌", "😛", "😜", "😝", "🤤", "😒", "😓",
 		"😔", "😕", "🙃", "🤑", "😲", "☹", "️🙁", "😖", "😞", "😟", "😤", "😢", "😭", "😦", "😧", "😨", "😩"}
 	joyEmoji = []string{"😉", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "☺", "️😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "😘",
@@ -37,7 +39,6 @@ func (a *App) notify() {
 	//
 	// слать нотификации в определенное время Time
 	// если не получены лайки и коменты за время Delay
-	// пересчитывать лайки и комменты перед нотификацией
 	//
 	if !a.Config.Notifier.IsAllow {
 		log.Println("Notifications does not allow in config")
@@ -58,12 +59,6 @@ func (a *App) notify() {
 			}
 
 			if t.Hour() >= a.Config.Notifier.TimeHour && t.Minute() >= a.Config.Notifier.TimeMinute && !isNotified {
-				// main logic
-				if err := a.updateReviews(); err != nil {
-					log.Println(ce.Wrap(err, "notifier update reviews"))
-					continue
-				}
-
 				us, err := a.DB.GetActiveUsers()
 				if err != nil {
 					log.Println(ce.Wrap(err, "notifier update reviews"))
@@ -71,35 +66,25 @@ func (a *App) notify() {
 				}
 				log.Printf("Notifier active users %v", us)
 
-				mrs, err := a.DB.CloseMRs()
-				if err != nil {
-					log.Printf("err close mrs: %v", err)
-				}
-				for _, mr := range mrs {
-					gitlabID, err := mr.GetGitlabID()
-					if err != nil {
-						log.Printf("err parse gitlab id for mr=%v: %v", mr, err)
-						continue
-					}
-					if err = a.Gitlab.SetLabelToMR(gitlabID, models.ReviewedLabel); err != nil {
-						log.Printf("err set label for mr_id=%d: %v", gitlabID, err)
-						continue
-					}
-					log.Printf("successfully set label for mr_id=%d", gitlabID)
-				}
-
 				messagesCount := 0
 				msg := greeting + "\n"
 				for _, u := range us {
+					qaTaskStr, err := a.buildNotifierQATask(u.ID)
+					if err != nil {
+						log.Println(ce.Wrap(err, "notifier qa task"))
+						continue
+					}
+
 					mrStr, err := a.buildNotifierMRString(u.ID)
 					if err != nil {
 						log.Println(ce.Wrap(err, "notifier update reviews"))
 						continue
 					}
-					log.Printf("Notifier MR string for user %d: %v\n", u.ID, mrStr)
 
-					if mrStr != "" {
-						msg += fmt.Sprintf("%s\n@%s %s\n%s", cutoff, u.TelegramUsername, randSadEmoji(), mrStr)
+					log.Printf("Notifier string for user %d: %s %s\n", u.ID, mrStr, qaTaskStr)
+
+					if len(mrStr) > 0 || len(qaTaskStr) > 0 {
+						msg += fmt.Sprintf("%s\n@%s %s\n%s%s", cutoff, u.TelegramUsername, randSadEmoji(), qaTaskStr, mrStr)
 						messagesCount++
 					}
 				}
@@ -113,7 +98,21 @@ func (a *App) notify() {
 			}
 		}
 	}()
+}
 
+func (a *App) buildNotifierQATask(uID int) (str string, err error) {
+	mrs, err := a.DB.GetUserClosedMRs(uID, jira.StatusOnReview)
+	if err != nil {
+		err = ce.WrapWithLog(err, "notifier build message")
+		return
+	}
+	log.Printf("User %d mrs:%d\n", uID, len(mrs))
+
+	for _, mr := range mrs {
+		str += fmt.Sprintf("%s %s\n", readyToQAEmoji, mr.URL)
+	}
+
+	return
 }
 
 func (a *App) buildNotifierMRString(uID int) (s string, err error) {
@@ -135,6 +134,18 @@ func (a *App) buildNotifierMRString(uID int) (s string, err error) {
 		}
 	}
 	return
+}
+
+func (a *App) notifyReviewTask(mr models.MR) error {
+	user, err := a.DB.GetUserByID(*mr.AuthorID)
+	if err != nil {
+		return err
+	}
+
+	msg := fmt.Sprintf("%s @%s, %s %s", readyToQAEmoji, user.TelegramUsername, moveTaskToQAText, mr.URL)
+	a.Telegram.SendMessage(msg)
+
+	return nil
 }
 
 func randSadEmoji() string {

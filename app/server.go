@@ -138,7 +138,7 @@ func (a *App) updateTasksFromJira() {
 		return
 	}
 	go func() {
-		for _ = range time.Tick(time.Minute * 10) {
+		for range time.Tick(time.Minute * 10) {
 			ctx := context.Background()
 			log.Println("updating mrs info from jira...")
 			mrs, err := a.DB.GetOpenedMRs()

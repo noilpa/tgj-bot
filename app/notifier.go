@@ -48,7 +48,7 @@ func (a *App) notify() {
 		var curDay time.Weekday
 		var newDay time.Weekday
 		var isNotified bool
-		for t := range time.Tick(time.Minute) {
+		for t := range time.Tick(time.Duration(a.Config.Timings.CheckNotifyPeriod)) {
 			newDay = t.Weekday()
 			if newDay != curDay {
 				curDay = newDay

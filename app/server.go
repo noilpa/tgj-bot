@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"log"
 	"strings"
 	"time"
@@ -21,6 +23,7 @@ type Config struct {
 	Rp       ReviewParty     `json:"review_party"`
 	Notifier NotifierConfig  `json:"notifier"`
 	Jira     jira.Config     `json:"jira"`
+	Timings  TimingsConf     `json:"timings"`
 }
 
 type ReviewParty struct {
@@ -35,6 +38,12 @@ type NotifierConfig struct {
 	Delay      int64    `json:"delay"`
 	Praise     []string `json:"praise"`
 	Motivate   []string `json:"motivate"`
+}
+
+type TimingsConf struct {
+	UpdateGitlabStatePeriod JSONDuration `json:"update_gitlab_state"`
+	UpdateJiraTasksPeriod   JSONDuration `json:"update_jira_tasks"`
+	CheckNotifyPeriod       JSONDuration `json:"check_notify"`
 }
 
 type App struct {
@@ -122,7 +131,7 @@ func (a *App) updateStateFromGitlab() {
 	}
 
 	go func() {
-		for _ = range time.Tick(time.Minute * 10) {
+		for _ = range time.Tick(time.Duration(a.Config.Timings.UpdateGitlabStatePeriod)) {
 			log.Println("update state from gitlab...")
 			if err := a.updateReviews(); err != nil {
 				log.Println(ce.Wrap(err, "notifier update reviews"))
@@ -138,7 +147,7 @@ func (a *App) updateTasksFromJira() {
 		return
 	}
 	go func() {
-		for _ = range time.Tick(time.Minute * 10) {
+		for _ = range time.Tick(time.Duration(a.Config.Timings.UpdateJiraTasksPeriod)) {
 			ctx := context.Background()
 			log.Println("updating mrs info from jira...")
 			mrs, err := a.DB.GetOpenedMRs()
@@ -219,4 +228,31 @@ func (a *App) migrateData() error {
 
 func (a *App) logError(err error) {
 	log.Println(err)
+}
+
+type JSONDuration time.Duration
+
+func (d JSONDuration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Duration(d).String())
+}
+
+func (d *JSONDuration) UnmarshalJSON(b []byte) error {
+	var v interface{}
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	switch value := v.(type) {
+	case float64:
+		*d = JSONDuration(time.Duration(value))
+		return nil
+	case string:
+		dur, err := time.ParseDuration(value)
+		if err != nil {
+			return err
+		}
+		*d = JSONDuration(dur)
+		return nil
+	default:
+		return errors.New("invalid duration")
+	}
 }

@@ -34,7 +34,7 @@ test:
   tags:
     - wink-shared
   script:
-    - apk add --no-cache git gcc musl-dev
+    - apk add --no-cache git gcc musl-dev gcc-c++ make
     - go env
     - go install github.com/golang/mock/mockgen
     - go generate ./...

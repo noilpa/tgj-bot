@@ -8,6 +8,6 @@ RUN go mod download && \
 
 FROM alpine
 RUN apk update && apk add ca-certificates && \
-    rm -rf /var/cache/apk/* && apk install -y gcc-c++ make
+    rm -rf /var/cache/apk/*
 COPY --from=build /src/bin/tgj-bot /usr/bin/tgj-bot
 ENTRYPOINT ["tgj-bot", "/conf/conf.json"]

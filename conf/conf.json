@@ -36,7 +36,7 @@
       "migrations_dir": "db_migrations/sql"
     },
     "tmpl_conf": "external_service/database/tests/conf.tmpl",
-    "dest_conf": "external_service/database/conf_test.go"
+    "dest_conf": "external_service/database/conf_tests.go"
   },
   "review_party": {
     "lead": 1,

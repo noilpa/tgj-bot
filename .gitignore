@@ -4,7 +4,7 @@
 
 bin/
 conf/test_conf
-external_service/database/conf_test.go
+external_service/database/conf_tests.go
 tgj\.db
 
 *.gen.go

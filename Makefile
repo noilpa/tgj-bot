@@ -20,6 +20,7 @@ migrate:
 	migrate -database postgres://postgres:password@localhost:5432/bot?sslmode=disable -path $(DB_MIGRATIONS) down"
 
 init_tests:
+	test -f external_service/database/conf_tests.go && rm external_service/database/conf_tests.go || true
 	go run external_service/database/tests/prepare.go ./conf/conf.json
 
 tests: init_tests

@@ -3,7 +3,7 @@
 
 \.idea/
 
-conf/test_conf\.json
+conf/test_conf
 
 tgj\.db
 
@@ -11,3 +11,4 @@ bin/
 
 *.gen.go
 
+tags

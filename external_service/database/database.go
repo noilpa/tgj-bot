@@ -2,11 +2,16 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 
 	ce "tgj-bot/custom_errors"
 	"tgj-bot/models"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 )
 
 type Database interface {
@@ -44,8 +49,21 @@ type ReviewRepository interface {
 }
 
 type DbConfig struct {
-	DriverName string `json:"driver"`
-	DSN        string `json:"dsn"`
+	DriverName    string `json:"driver"`
+	Host          string `json:"host"`
+	Port          int    `json:"port"`
+	User          string `json:"user"`
+	Pass          string `json:"pass"`
+	DBName        string `json:"dbname"`
+	MigrationsDir string `json:"migrations_dir"`
+}
+
+func (c *DbConfig) DSN() string {
+	return fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", c.User, c.Pass, c.DBName)
+}
+
+func (c *DbConfig) MigrationDSN() string {
+	return fmt.Sprintf("%s://%s:%s@%s:%d/%s?sslmode=disable", c.DriverName, c.User, c.Pass, c.Host, c.Port, c.DBName)
 }
 
 type Client struct {
@@ -53,7 +71,7 @@ type Client struct {
 }
 
 func RunDB(cfg DbConfig) (dbClient Client, err error) {
-	dbClient.db, err = sql.Open(cfg.DriverName, cfg.DSN)
+	dbClient.db, err = sql.Open(cfg.DriverName, cfg.DSN())
 	if err != nil {
 		err = ce.WrapWithLog(err, "DB client err")
 		return
@@ -62,53 +80,23 @@ func RunDB(cfg DbConfig) (dbClient Client, err error) {
 		err = ce.WrapWithLog(err, "DB ping err")
 		return
 	}
-	if err = dbClient.initSchema(); err != nil {
+	if err = runMigrations(cfg.MigrationDSN(), cfg.MigrationsDir); err != nil {
 		return
 	}
 
 	return
 }
 
-func (c *Client) initSchema() (err error) {
-	setSearchPath := `SET search_path TO public;`
-
-	createUsers := `CREATE TABLE IF NOT EXISTS users (
-					  id SERIAL PRIMARY KEY, 
-					  telegram_id TEXT UNIQUE,
-					  telegram_username TEXT UNIQUE,
-					  gitlab_id TEXT UNIQUE, 
-					  gitlab_name TEXT NOT NULL DEFAULT '',
-					  jira_id TEXT, 
-					  is_active BOOLEAN, 
-					  role TEXT);`
-
-	createMrs := `CREATE TABLE IF NOT EXISTS mrs (
-  				    id SERIAL PRIMARY KEY, 
-					url TEXT UNIQUE,
-					author_id INTEGER NOT NULL,
-					is_closed BOOLEAN DEFAULT FALSE,
-					jira_id INTEGER NOT NULL DEFAULT 0,
-					jira_priority INTEGER NOT NULL DEFAULT 0,
-					gitlab_id INTEGER NOT NULL DEFAULT 0,
-					jira_status INTEGER NOT NULL DEFAULT 0,
-					FOREIGN KEY(author_id) REFERENCES users(id));`
-
-	createReviews := `CREATE TABLE IF NOT EXISTS reviews (
-					    mr_id INTEGER NOT NULL,
-					    user_id INTEGER NOT NULL,
-					    is_approved BOOLEAN DEFAULT FALSE,
-					    is_commented BOOLEAN DEFAULT FALSE,
-					    updated_at BIGINT,
-					    PRIMARY KEY (mr_id, user_id),
-					    FOREIGN KEY(mr_id) REFERENCES mrs(id),
-					    FOREIGN KEY(user_id) REFERENCES users(id));`
-
-	_, err = c.db.Exec(setSearchPath + createUsers + createMrs + createReviews)
+func runMigrations(dsn, path string) error {
+	m, err := migrate.New("file://"+path, dsn)
 	if err != nil {
-		err = ce.WrapWithLog(err, "create tables")
-		return
+		return errors.Wrap(err, "migrations failed")
 	}
-	return
+	err = m.Up()
+	if err != migrate.ErrNoChange {
+		return errors.Wrap(err, "migrations up failed")
+	}
+	return nil
 }
 
 func (c *Client) Close() {

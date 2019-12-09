@@ -51,7 +51,7 @@ type ReviewRepository interface {
 type DbConfig struct {
 	DriverName    string `json:"driver"`
 	Host          string `json:"host"`
-	Port          int    `json:"port"`
+	Port          string `json:"port"`
 	User          string `json:"user"`
 	Pass          string `json:"pass"`
 	DBName        string `json:"dbname"`
@@ -63,7 +63,7 @@ func (c *DbConfig) DSN() string {
 }
 
 func (c *DbConfig) MigrationDSN() string {
-	return fmt.Sprintf("%s://%s:%s@%s:%d/%s?sslmode=disable", c.DriverName, c.User, c.Pass, c.Host, c.Port, c.DBName)
+	return fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=disable", c.DriverName, c.User, c.Pass, c.Host, c.Port, c.DBName)
 }
 
 type Client struct {

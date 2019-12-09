@@ -23,7 +23,6 @@ func main() {
 	if len(os.Args) == 2 {
 		app.Config, err = readConfig(os.Args[1])
 		log.Printf("arg config path: %s", os.Args[1])
-
 	} else {
 		app.Config, err = readConfig("../conf/conf.json")
 	}

@@ -18,3 +18,9 @@ migrate:
 	@echo "RUN CMD MANUALLY:\n\
 	migrate -database postgres://postgres:password@localhost:5432/bot?sslmode=disable -path $(DB_MIGRATIONS) up\n\
 	migrate -database postgres://postgres:password@localhost:5432/bot?sslmode=disable -path $(DB_MIGRATIONS) down"
+
+init_tests:
+	go run external_service/database/tests/prepare.go ./conf/conf.json
+
+tests: init_tests
+	find ./ -name '*_test.go' | sort | xargs -n1 dirname | xargs go test -count=1 -cover

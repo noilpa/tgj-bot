@@ -11,7 +11,7 @@ import (
 )
 
 type PostgreSQLFixture struct {
-	T *testing.T
+	T  *testing.T
 	DB *sql.DB
 }
 
@@ -19,14 +19,14 @@ func (fx *PostgreSQLFixture) Finish() {
 	assert.NoError(fx.T, fx.DB.Close())
 }
 
-func New(t *testing.T,driver, connURL string) *PostgreSQLFixture {
+func New(t *testing.T, driver, connURL string) *PostgreSQLFixture {
 	txDriver := initTxDBDriver(driver, connURL)
 
 	db, err := sql.Open(txDriver, connURL)
 	assert.NoError(t, err)
 	fx := &PostgreSQLFixture{
 		DB: db,
-		T: t,
+		T:  t,
 	}
 
 	return fx

@@ -38,8 +38,8 @@ test:
     - go env
     - go install github.com/golang/mock/mockgen
     - go generate ./...
-    - go build -o bin/tgj-bot ./cmd
-    - go test ./...
+    - make build
+    - make tests
 
 build:
   stage: build

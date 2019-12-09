@@ -28,7 +28,7 @@
   "tests": {
     "database": {
       "driver": "postgres",
-      "host": "localhost",
+      "host": "postgres",
       "port": "5432",
       "user": "tgj_bot_user",
       "pass": "tgj_bot_user",

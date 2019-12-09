@@ -131,7 +131,7 @@ func (a *App) updateStateFromGitlab() {
 	}
 
 	go func() {
-		for _ = range time.Tick(time.Duration(a.Config.Timings.UpdateGitlabStatePeriod)) {
+		for range time.Tick(time.Duration(a.Config.Timings.UpdateGitlabStatePeriod)) {
 			log.Println("update state from gitlab...")
 			if err := a.updateReviews(); err != nil {
 				log.Println(ce.Wrap(err, "notifier update reviews"))
@@ -147,7 +147,7 @@ func (a *App) updateTasksFromJira() {
 		return
 	}
 	go func() {
-		for _ = range time.Tick(time.Duration(a.Config.Timings.UpdateJiraTasksPeriod)) {
+		for range time.Tick(time.Duration(a.Config.Timings.UpdateJiraTasksPeriod)) {
 			ctx := context.Background()
 			log.Println("updating mrs info from jira...")
 			mrs, err := a.DB.GetOpenedMRs()

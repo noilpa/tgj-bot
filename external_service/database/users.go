@@ -34,7 +34,8 @@ func (c *Client) ChangeIsActiveUser(telegramUsername string, isActive bool) (err
 }
 
 func (c *Client) GetUsersWithPayload(exceptTelegramID string) (ups models.UsersPayload, err error) {
-	q := `SELECT id, 
+	q := `WITH mr_ids AS (SELECT id FROM mrs WHERE is_closed = FALSE)
+		  SELECT id, 
        			 telegram_id,
        			 telegram_username,
        			 role,
@@ -43,7 +44,8 @@ func (c *Client) GetUsersWithPayload(exceptTelegramID string) (ups models.UsersP
                  (SELECT count(*) 
                   FROM reviews r 
                   WHERE r.user_id = id
-                    AND r.is_approved = FALSE) AS payload
+                    AND r.is_approved = FALSE
+                    AND r.mr_id IN (SELECT * FROM mr_ids)) AS payload
           FROM users
 		  WHERE telegram_id != $1
 			AND is_active = TRUE

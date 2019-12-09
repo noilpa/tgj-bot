@@ -288,15 +288,15 @@ func (a *App) updateMrLikes(mr models.MR) error {
 }
 
 func (a *App) updateMrComments(mr models.MR) error {
-	usersID, err := a.Gitlab.CheckMrComments(mr.GitlabID)
+	userGitlabIDList, err := a.Gitlab.CheckMrComments(mr.GitlabID)
 	if err != nil {
 		return err
 	}
-	log.Printf("Check mr comments user's ids: %v", usersID)
-	for uID := range usersID {
-		u, err := a.DB.GetUserByGitlabID(uID)
+	log.Printf("Check mr comments user's ids: %v", userGitlabIDList)
+	for gitlabID, isCommented := range userGitlabIDList {
+		u, err := a.DB.GetUserByGitlabID(gitlabID)
 		if err != nil {
-			ce.WrapWithLog(err, fmt.Sprintf("user not found by gitlab id=%d", uID))
+			ce.WrapWithLog(err, fmt.Sprintf("user not found by gitlab id=%d", gitlabID))
 			continue
 		}
 
@@ -306,7 +306,7 @@ func (a *App) updateMrComments(mr models.MR) error {
 		err = a.DB.UpdateReviewComment(models.Review{
 			MrID:        mr.ID,
 			UserID:      u.ID,
-			IsCommented: true,
+			IsCommented: isCommented,
 			UpdatedAt:   now,
 		})
 		if err != nil {

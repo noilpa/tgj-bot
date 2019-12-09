@@ -104,13 +104,13 @@ func (c *Client) CheckMrComments(mrID int) (users map[int]struct{}, err error) {
 	return
 }
 
-func (c *Client) GetMrAuthorID(mrID int) (int, error) {
+func (c *Client) GetMrByID(mrID int) (*gitlab.MergeRequest, error) {
 	spew.Dump(c)
 	mr, _, err := c.Gitlab.MergeRequests.GetMergeRequest(c.Project.ID, mrID, nil)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return mr.Author.ID, nil
+	return mr, nil
 }
 
 func (c *Client) MrIsOpen(mrID int) (bool, error) {

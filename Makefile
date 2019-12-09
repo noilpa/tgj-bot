@@ -7,7 +7,7 @@ build:
 run: build
 	$(RUNNER) ./conf/conf.json
 
-run_test: build
+run_dev: build
 	$(RUNNER) ./conf/test_conf/conf.json
 
 create_migration:

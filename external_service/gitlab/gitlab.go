@@ -85,21 +85,21 @@ func (c *Client) CheckMrLikes(mrID int) (users map[int]struct{}, err error) {
 
 // если есть открытые комметны то нотификацию получает хост МРа
 // return list of users with open comment flag
-func (c *Client) CheckMrComments(mrID int) (users map[int]struct{}, err error) {
-	comments, resp, err := c.Gitlab.MergeRequests.GetIssuesClosedOnMerge(c.Project.ID, mrID, nil)
+func (c *Client) CheckMrComments(mrID int) (users map[int]bool, err error) {
+	discussions, resp, err := c.Gitlab.Discussions.ListMergeRequestDiscussions(c.Project.ID, mrID, nil)
 	respBody, _ := ioutil.ReadAll(resp.Body)
 	log.Println("Comments resp:", string(respBody))
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
-	log.Println("Comments:", comments)
+	log.Println("Comments:", discussions)
 
-	users = make(map[int]struct{})
-	for _, comment := range comments {
-		if _, found := users[comment.Author.ID]; !found {
-			users[comment.Author.ID] = struct{}{}
-		}
+	users = make(map[int]bool)
+	for _, discussion := range discussions {
+		lastComment := discussion.Notes[len(discussion.Notes)-1]
+		// if discussion resolved, we need to reset is_commented flag
+		users[discussion.Notes[0].Author.ID] = users[discussion.Notes[0].Author.ID] || !lastComment.Resolved
 	}
 	return
 }

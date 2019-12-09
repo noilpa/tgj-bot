@@ -63,7 +63,7 @@ func (c *DbConfig) DSN() string {
 }
 
 func (c *DbConfig) MigrationDSN() string {
-	return fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=disable", c.DriverName, c.User, c.Pass, c.Host, c.Port, c.DBName)
+	return fmt.Sprintf("%s://%s:%s@%s/%s?sslmode=disable", c.DriverName, c.User, c.Pass, c.Host, c.DBName)
 }
 
 type Client struct {

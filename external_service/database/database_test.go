@@ -34,7 +34,7 @@ type fixture struct {
 }
 
 func newFixture(t *testing.T) *fixture {
-	db := fixtures.New(t, conf.DriverName, conf.DSN()).DB
+	db := fixtures.New(t, conf.DriverName, conf.MigrationDSN()).DB
 	require.NoError(t, db.Ping())
 	f := &fixture{
 		Client: Client{

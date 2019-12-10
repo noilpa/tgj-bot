@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -46,58 +47,88 @@ func (a *App) notify() {
 	}
 	go func() {
 		var curDay time.Weekday
-		var newDay time.Weekday
-		var isNotified bool
 		for t := range time.Tick(time.Duration(a.Config.Timings.CheckNotifyPeriod)) {
-			newDay = t.Weekday()
-			if newDay != curDay {
-				curDay = newDay
-				isNotified = false
-				if curDay == time.Saturday || curDay == time.Sunday {
-					isNotified = true
-				}
+			lastSendNotify, err := a.loadLastSendNotify()
+			if err != nil {
+				a.logError(err)
+				continue
 			}
 
-			if t.Hour() >= a.Config.Notifier.TimeHour && t.Minute() >= a.Config.Notifier.TimeMinute && !isNotified {
-				us, err := a.DB.GetActiveUsers()
-				if err != nil {
-					log.Println(ce.Wrap(err, "notifier update reviews"))
-					continue
+			curDay = t.Weekday()
+			if lastSendNotify.Weekday() == curDay {
+				continue
+			}
+			if curDay == time.Saturday || curDay == time.Sunday {
+				continue
+			}
+
+			if t.Hour() >= a.Config.Notifier.TimeHour && t.Minute() >= a.Config.Notifier.TimeMinute {
+				if err := a.sendDailyNotification(); err != nil {
+					a.logError(err)
 				}
-				log.Printf("Notifier active users %v", us)
 
-				messagesCount := 0
-				msg := greeting + "\n"
-				for _, u := range us {
-					qaTaskStr, err := a.buildNotifierQATask(u.ID)
-					if err != nil {
-						log.Println(ce.Wrap(err, "notifier qa task"))
-						continue
-					}
-
-					mrStr, err := a.buildNotifierMRString(u.ID)
-					if err != nil {
-						log.Println(ce.Wrap(err, "notifier update reviews"))
-						continue
-					}
-
-					log.Printf("Notifier string for user %d: %s %s\n", u.ID, mrStr, qaTaskStr)
-
-					if len(mrStr) > 0 || len(qaTaskStr) > 0 {
-						msg += fmt.Sprintf("%s\n@%s %s\n%s%s", cutoff, u.TelegramUsername, randSadEmoji(), qaTaskStr, mrStr)
-						messagesCount++
-					}
+				value := models.LastSendNotifyOption{Stamp: time.Now().Unix()}
+				if err := a.DB.UpdateOptionByName(models.OptionLastSendNotify, value); err != nil {
+					a.logError(err)
 				}
-				if messagesCount == 0 {
-					msg += "\n" + a.praise()
-				} else {
-					msg += "\n" + a.motivate()
-				}
-				a.Telegram.SendMessage(msg)
-				isNotified = true
 			}
 		}
 	}()
+}
+
+func (a *App) loadLastSendNotify() (value time.Time, err error) {
+	option, err := a.DB.LoadOptionByName(models.OptionLastSendNotify)
+	if err != nil {
+		return
+	}
+
+	var item models.LastSendNotifyOption
+	err = json.Unmarshal([]byte(option.Item), &item)
+	if err != nil {
+		return
+	}
+	value = time.Unix(item.Stamp, 0)
+	return
+}
+
+func (a *App) sendDailyNotification() error {
+	us, err := a.DB.GetActiveUsers()
+	if err != nil {
+		log.Println(ce.Wrap(err, "notifier update reviews"))
+		return err
+	}
+	log.Printf("Notifier active users %v", us)
+
+	messagesCount := 0
+	msg := greeting + "\n"
+	for _, u := range us {
+		qaTaskStr, err := a.buildNotifierQATask(u.ID)
+		if err != nil {
+			log.Println(ce.Wrap(err, "notifier qa task"))
+			continue
+		}
+
+		mrStr, err := a.buildNotifierMRString(u.ID)
+		if err != nil {
+			log.Println(ce.Wrap(err, "notifier update reviews"))
+			continue
+		}
+
+		log.Printf("Notifier string for user %d: %s %s\n", u.ID, mrStr, qaTaskStr)
+
+		if len(mrStr) > 0 || len(qaTaskStr) > 0 {
+			msg += fmt.Sprintf("%s\n@%s %s\n%s%s", cutoff, u.TelegramUsername, randSadEmoji(), qaTaskStr, mrStr)
+			messagesCount++
+		}
+	}
+	if messagesCount == 0 {
+		msg += "\n" + a.praise()
+	} else {
+		msg += "\n" + a.motivate()
+	}
+	a.Telegram.SendMessage(msg)
+
+	return nil
 }
 
 func (a *App) buildNotifierQATask(uID int) (str string, err error) {

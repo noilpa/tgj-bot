@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	ce "tgj-bot/custom_errors"
 	"tgj-bot/external_service/jira"
@@ -127,4 +128,19 @@ func GetGitlabID(mrURL string) (int, error) {
 		return 0, errors.New("wrong url format")
 	}
 	return strconv.Atoi(pathArr[4])
+}
+
+const (
+	OptionLastSendNotify = "last_send_notify"
+)
+
+type LastSendNotifyOption struct {
+	Stamp int64 `json:"value"`
+}
+
+type Option struct {
+	ID        int
+	Name      string
+	Item      string `json:"item"`
+	UpdatedAt *time.Time
 }

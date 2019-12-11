@@ -120,9 +120,9 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 		return
 	}
 	if !isMrTitleValid(gitlabMR.Title) {
-		return errors.New("mr title not valid")
+		return errors.New("mr title must have ticket number in square brackets without spaces inside. Example:[NC-1234]")
 	}
-	author, err := a.DB.GetUserByGitlabID(gitlabMR.Author.ID)
+	author, err := a.DB.GetUserByGitlabID(gitlabMR.AuthorID)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			return

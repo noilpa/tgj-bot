@@ -42,6 +42,12 @@ type Client struct {
 	Project *gitlab.Project
 }
 
+type GitlabMR struct {
+	ID       int
+	Title    string
+	AuthorID int
+}
+
 func RunGitlab(cfg GitlabConfig) (client Client, err error) {
 	client.Gitlab = gitlab.NewClient(nil, cfg.Token)
 
@@ -104,12 +110,19 @@ func (c *Client) CheckMrComments(mrID int) (users map[int]bool, err error) {
 	return
 }
 
-func (c *Client) GetMrByID(mrID int) (*gitlab.MergeRequest, error) {
+func (c *Client) GetMrByID(mrID int) (*GitlabMR, error) {
 	spew.Dump(c)
-	mr, _, err := c.Gitlab.MergeRequests.GetMergeRequest(c.Project.ID, mrID, nil)
+	item, _, err := c.Gitlab.MergeRequests.GetMergeRequest(c.Project.ID, mrID, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	mr := &GitlabMR{
+		ID:       item.ID,
+		Title:    item.Title,
+		AuthorID: item.Author.ID,
+	}
+
 	return mr, nil
 }
 

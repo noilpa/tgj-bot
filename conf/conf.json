@@ -18,8 +18,25 @@
   },
   "database": {
     "driver": "postgres",
-    "dsn": "user=user password=password dbname=db",
-    "host": "postgres"
+    "host": "postgres",
+    "port": "5432",
+    "user": "user",
+    "pass": "password",
+    "dbname": "dbname",
+    "migrations_dir": "db_migrations/sql"
+  },
+  "tests": {
+    "database": {
+      "driver": "postgres",
+      "host": "postgres",
+      "port": "5432",
+      "user": "tgj_bot_user",
+      "pass": "tgj_bot_user",
+      "dbname": "tgj_bot_db",
+      "migrations_dir": "db_migrations/sql"
+    },
+    "tmpl_conf": "external_service/database/tests/conf.tmpl",
+    "dest_conf": "external_service/database/conf_tests.go"
   },
   "review_party": {
     "lead": 1,
@@ -27,6 +44,7 @@
   },
   "notifier": {
     "is_allow": true,
+    "is_allow_bot_cmd": false,
     "time_hour": 12,
     "time_minute": 20,
     "delay": 259200,
@@ -46,5 +64,10 @@
       "«Всегда выкладывайся на полную. Что посеешь — то и пожнешь», — Ог Мандино",
       "як немає пташок, то і дупа соловей"
     ]
+  },
+  "timings": {
+    "update_gitlab_state": "10m",
+    "update_jira_tasks": "10m",
+    "check_notify": "1m"
   }
 }

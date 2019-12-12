@@ -1,13 +1,11 @@
 
 \.DS_Store
-
 \.idea/
 
-conf/test_conf\.json
-
+bin/
+conf/test_conf
+external_service/database/conf_tests.go
 tgj\.db
 
-bin/
-
 *.gen.go
-
+tags

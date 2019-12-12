@@ -1,25 +1,27 @@
 package database
 
 import (
-	"context"
 	"testing"
 	"time"
 
 	"tgj-bot/fixtures"
-	"tgj-bot/th"
-
 	"tgj-bot/models"
+	"tgj-bot/th"
 
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-const (
-	driver  = "postgres"
-	connURL = "postgres://tgj_bot_user:tgj_bot_user@postgres/tgj_bot_db?sslmode=disable"
-)
-
-var ctx = context.Background()
+var conf = DbConfig{
+	DriverName:    TestDriverName,
+	Host:          TestHost,
+	Port:          TestPort,
+	User:          TestUser,
+	Pass:          TestPass,
+	DBName:        TestDBName,
+	MigrationsDir: TestMigrationsDir,
+}
 
 func TestClient_Dummy(t *testing.T) {
 	f := newFixture(t)
@@ -32,16 +34,16 @@ type fixture struct {
 }
 
 func newFixture(t *testing.T) *fixture {
-
-	db := fixtures.New(t, driver, connURL).DB
-	assert.NoError(t, db.Ping())
+	db := fixtures.New(t, conf.DriverName, conf.MigrationDSN()).DB
+	require.NoError(t, db.Ping())
 	f := &fixture{
 		Client: Client{
 			db: db,
 		},
 		T: t,
 	}
-	assert.NoError(t, f.initSchema())
+
+	require.NoError(t, runMigrations(conf.MigrationDSN(), conf.MigrationsDir))
 	return f
 }
 
@@ -63,8 +65,8 @@ func (f *fixture) createUsersN(n int) []models.User {
 				TelegramID:       th.String(),
 				TelegramUsername: th.String(),
 				Role:             models.Developer,
-				GitlabID: th.Int(),
-				GitlabName: th.String(),
+				GitlabID:         th.Int(),
+				GitlabName:       th.String(),
 			},
 			JiraID:   th.String(),
 			IsActive: true,

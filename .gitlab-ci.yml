@@ -34,12 +34,12 @@ test:
   tags:
     - wink-shared
   script:
-    - apk add --no-cache git gcc musl-dev
+    - apk add --no-cache git gcc musl-dev make
     - go env
     - go install github.com/golang/mock/mockgen
     - go generate ./...
-    - go build -o bin/tgj-bot ./cmd
-    - go test ./...
+    - make build
+    - make tests
 
 build:
   stage: build

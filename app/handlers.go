@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +16,8 @@ import (
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
+
+var titleMRRegexp = regexp.MustCompile(`NC-\d+`)
 
 func (a *App) helpHandler() error {
 	a.Telegram.SendMessage(fmt.Sprint("/register gitlab_id [role=dev]\n" + "/mr merge_request_url\n" +
@@ -112,11 +115,14 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 		return a.returnMrParty(mrGitlabID)
 	}
 
-	authorGitlabID, err := a.Gitlab.GetMrAuthorID(mrGitlabID)
+	gitlabMR, err := a.Gitlab.GetMrByID(mrGitlabID)
 	if err != nil {
 		return
 	}
-	author, err := a.DB.GetUserByGitlabID(authorGitlabID)
+	if !isMrTitleValid(gitlabMR.Title) {
+		return errors.New("mr title must have ticket number in square brackets without spaces inside. Example:[NC-1234]")
+	}
+	author, err := a.DB.GetUserByGitlabID(gitlabMR.AuthorID)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			return
@@ -427,4 +433,27 @@ func getParticipants(users models.UsersPayload, cfg ReviewParty) (rp models.User
 		return nil, err
 	}
 	return append(devs, leads...), nil
+}
+
+func isMrTitleValid(title string) bool {
+	indexes := titleMRRegexp.FindIndex([]byte(title))
+	if len(indexes) == 0 {
+		return true
+	}
+	if len(indexes) != 2 {
+		return false
+	}
+
+	start := indexes[0]
+	end := indexes[1]
+	titleAmount := len(title)
+
+	if start > 0 && string(title[start-1]) != "[" {
+		return false
+	}
+	if end < (titleAmount-1) && string(title[end]) != "]" {
+		return false
+	}
+
+	return true
 }

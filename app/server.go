@@ -32,12 +32,13 @@ type ReviewParty struct {
 }
 
 type NotifierConfig struct {
-	IsAllow    bool     `json:"is_allow"`
-	TimeHour   int      `json:"time_hour"`
-	TimeMinute int      `json:"time_minute"`
-	Delay      int64    `json:"delay"`
-	Praise     []string `json:"praise"`
-	Motivate   []string `json:"motivate"`
+	IsAllow       bool     `json:"is_allow"`
+	IsAllowBotCMD bool     `json:"is_allow_bot_cmd"`
+	TimeHour      int      `json:"time_hour"`
+	TimeMinute    int      `json:"time_minute"`
+	Delay         int64    `json:"delay"`
+	Praise        []string `json:"praise"`
+	Motivate      []string `json:"motivate"`
 }
 
 type TimingsConf struct {
@@ -62,6 +63,7 @@ const (
 	inactiveCmd = command("inactive")
 	activeCmd   = command("active")
 	mrCmd       = command("mr")
+	dailyCmd    = command("daily")
 )
 
 const success = "Success! 👍"
@@ -103,6 +105,12 @@ func (a *App) Serve() (err error) {
 		case mrCmd:
 			if _, err = a.isUserRegister(tgUsername); err == nil {
 				err = a.mrHandler(update)
+			}
+		case dailyCmd:
+			if a.Config.Notifier.IsAllowBotCMD {
+				err = a.sendDailyNotification()
+			} else {
+				err = errors.New("this feature not available")
 			}
 		default:
 			err = a.helpHandler()

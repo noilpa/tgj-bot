@@ -44,6 +44,7 @@
   },
   "notifier": {
     "is_allow": true,
+    "is_allow_bot_cmd": false,
     "time_hour": 12,
     "time_minute": 20,
     "delay": 259200,

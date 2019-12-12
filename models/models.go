@@ -111,6 +111,15 @@ func (mr *MR) IsOnReview() bool {
 	return mr.JiraStatus == jira.StatusOnReview
 }
 
+func (mr *MR) CheckNoNeedUpdateFromJira() {
+	if mr.JiraStatus == jira.StatusMerged ||
+		mr.JiraStatus == jira.StatusApproved ||
+		mr.JiraStatus == jira.StatusReady ||
+		mr.JiraStatus == jira.StatusDone {
+		mr.NeedJiraUpdate = false
+	}
+}
+
 type Review struct {
 	MrID        int
 	UserID      int

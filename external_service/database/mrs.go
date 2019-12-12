@@ -1,8 +1,6 @@
 package database
 
 import (
-	"github.com/lib/pq"
-
 	ce "tgj-bot/custom_errors"
 
 	"tgj-bot/models"
@@ -165,24 +163,4 @@ func (c *Client) GetUserClosedMRs(uID int, jiraStatus int) (mrs []models.MR, err
 		mrs = append(mrs, mr)
 	}
 	return
-}
-
-func (c *Client) SetNoNeedToUpdateMRsFromJira(mrs []models.MR) error {
-	if len(mrs) == 0 {
-		return nil
-	}
-
-	ids := make([]int, 0, len(mrs))
-	for _, item := range mrs {
-		ids = append(ids, item.ID)
-	}
-
-	q := `UPDATE mrs SET need_jira_update=FALSE WHERE id = ANY($1)`
-	_, err := c.db.Exec(q, pq.Array(ids))
-	if err != nil {
-		err = ce.WrapWithLog(ce.ErrSetNoNeedToUpdateMRsFromJira, err.Error())
-		return err
-	}
-
-	return nil
 }

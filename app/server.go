@@ -169,10 +169,6 @@ func (a *App) updateTasksFromJira() {
 					a.logError(err)
 				}
 			}
-
-			if err := a.DB.SetNoNeedToUpdateMRsFromJira(mrs); err != nil {
-				a.logError(err)
-			}
 		}
 	}()
 }
@@ -197,6 +193,8 @@ func (a *App) updateTaskFromJira(ctx context.Context, mr models.MR) error {
 		if jiraIssue != nil {
 			mr.JiraPriority = jiraIssue.Priority
 			mr.JiraStatus = jiraIssue.Status
+			mr.CheckNoNeedUpdateFromJira()
+
 			isChanged = true
 		}
 	}

@@ -1,0 +1,1 @@
+ALTER TABLE mrs ADD COLUMN need_jira_update bool DEFAULT TRUE;

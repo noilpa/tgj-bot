@@ -158,7 +158,7 @@ func (a *App) updateTasksFromJira() {
 		for range time.Tick(time.Duration(a.Config.Timings.UpdateJiraTasksPeriod)) {
 			ctx := context.Background()
 			log.Println("updating mrs info from jira...")
-			mrs, err := a.DB.GetAllMRs()
+			mrs, err := a.DB.GetNeedToUpdateFromJiraMRs()
 			if err != nil {
 				a.logError(err)
 				continue
@@ -168,6 +168,10 @@ func (a *App) updateTasksFromJira() {
 				if err := a.updateTaskFromJira(ctx, mr); err != nil {
 					a.logError(err)
 				}
+			}
+
+			if err := a.DB.SetNoNeedToUpdateMRsFromJira(mrs); err != nil {
+				a.logError(err)
 			}
 		}
 	}()

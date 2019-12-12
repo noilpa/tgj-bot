@@ -1,6 +1,7 @@
 package database
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"tgj-bot/models"
@@ -87,6 +88,7 @@ func TestClient_CloseMRs(t *testing.T) {
 	t.Run("should close mr if no reviews for it", func(t *testing.T) {
 		f := newFixture(t)
 		defer f.finish()
+
 		u := f.createUser()
 		eMr := f.createMR(u.ID)
 		eMr.IsClosed = true
@@ -149,4 +151,104 @@ func TestClient_GetUserClosedMRs(t *testing.T) {
 	values, err := f.GetUserClosedMRs(user.ID, 10)
 	assert.NoError(t, err)
 	assert.EqualValues(t, expValues, values)
+}
+
+func TestClient_GetNeedToUpdateFromJiraMRs(t *testing.T) {
+	f := newFixture(t)
+	defer f.finish()
+
+	user := f.createUser()
+
+	mr1 := models.MR{
+		URL:            th.String(),
+		AuthorID:       &user.ID,
+		NeedJiraUpdate: false,
+	}
+	mr1, err := f.CreateMR(mr1)
+	require.NoError(t, err)
+
+	mr2 := models.MR{
+		URL:            th.String(),
+		AuthorID:       &user.ID,
+		NeedJiraUpdate: true,
+	}
+	mr2, err = f.CreateMR(mr2)
+	require.NoError(t, err)
+
+	mr3 := models.MR{
+		URL:            th.String(),
+		AuthorID:       &user.ID,
+		NeedJiraUpdate: true,
+	}
+	mr3, err = f.CreateMR(mr3)
+	require.NoError(t, err)
+
+	mr4 := models.MR{
+		URL:            th.String(),
+		AuthorID:       &user.ID,
+		NeedJiraUpdate: false,
+	}
+	mr4, err = f.CreateMR(mr4)
+	require.NoError(t, err)
+
+	items, err := f.GetNeedToUpdateFromJiraMRs()
+	require.NoError(t, err)
+
+	assert.ElementsMatch(t, []models.MR{mr2, mr3}, items)
+}
+
+func TestClient_SetNoNeedToUpdateMRsFromJira(t *testing.T) {
+	t.Run("zero items", func(t *testing.T) {
+		f := newFixture(t)
+		defer f.finish()
+
+		var mrs []models.MR
+		assert.NoError(t, f.SetNoNeedToUpdateMRsFromJira(mrs))
+	})
+
+	t.Run("set successfully", func(t *testing.T) {
+		f := newFixture(t)
+		defer f.finish()
+
+		user := f.createUser()
+
+		mr1 := models.MR{
+			URL:            th.String(),
+			AuthorID:       &user.ID,
+			NeedJiraUpdate: true,
+		}
+		mr1, err := f.CreateMR(mr1)
+		require.NoError(t, err)
+
+		mr2 := models.MR{
+			URL:            th.String(),
+			AuthorID:       &user.ID,
+			NeedJiraUpdate: true,
+		}
+		mr2, err = f.CreateMR(mr2)
+		require.NoError(t, err)
+
+		mr3 := models.MR{
+			URL:            th.String(),
+			AuthorID:       &user.ID,
+			NeedJiraUpdate: true,
+		}
+		mr3, err = f.CreateMR(mr3)
+		require.NoError(t, err)
+
+		mr4 := models.MR{
+			URL:            th.String(),
+			AuthorID:       &user.ID,
+			NeedJiraUpdate: false,
+		}
+		mr4, err = f.CreateMR(mr4)
+		require.NoError(t, err)
+
+		require.NoError(t, f.SetNoNeedToUpdateMRsFromJira([]models.MR{mr1, mr2}))
+
+		items, err := f.GetNeedToUpdateFromJiraMRs()
+		require.NoError(t, err)
+
+		assert.ElementsMatch(t, []models.MR{mr3}, items)
+	})
 }

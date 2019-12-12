@@ -81,14 +81,15 @@ func IsValidRole(r Role) bool {
 }
 
 type MR struct {
-	ID           int
-	URL          string
-	AuthorID     *int
-	IsClosed     bool
-	GitlabID     int
-	JiraID       int
-	JiraPriority int
-	JiraStatus   int
+	ID             int
+	URL            string
+	AuthorID       *int
+	IsClosed       bool
+	GitlabID       int
+	JiraID         int
+	JiraPriority   int
+	JiraStatus     int
+	NeedJiraUpdate bool
 }
 
 func (mr *MR) ExtractJiraID(title string) {

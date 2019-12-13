@@ -59,7 +59,7 @@ type DbConfig struct {
 }
 
 func (c *DbConfig) DSN() string {
-	return fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", c.User, c.Pass, c.DBName)
+	return fmt.Sprintf("user=%s password=%s dbname=%s host=%s sslmode=disable", c.User, c.Pass, c.DBName, c.Host)
 }
 
 func (c *DbConfig) MigrationDSN() string {

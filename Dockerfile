@@ -10,4 +10,5 @@ FROM alpine
 RUN apk update && apk add ca-certificates && \
     rm -rf /var/cache/apk/*
 COPY --from=build /src/bin/tgj-bot /usr/bin/tgj-bot
+COPY --from=build /src/db_migrations/sql /etc/db_migrations/sql
 ENTRYPOINT ["tgj-bot", "/conf/conf.json"]

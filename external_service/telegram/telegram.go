@@ -52,11 +52,12 @@ func RunBot(cfg TgConfig) (tgClient Client, err error) {
 	return
 }
 
-func (c *Client) SendMessage(msg string) {
+func (c *Client) SendMessage(msg string) error {
 	if m, err := c.Bot.Send(tgbotapi.NewMessage(c.ChatID, msg)); err != nil {
 		log.Printf("Couldn't send message '%v': %v", m, err)
+		return err
 	}
-	return
+	return nil
 }
 
 func initHTTPClient(proxyRaw string) (*http.Client, error) {

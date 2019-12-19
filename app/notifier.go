@@ -174,7 +174,14 @@ func (a *App) notifyReviewTask(mr models.MR) error {
 	}
 
 	msg := fmt.Sprintf("%s @%s, %s %s", readyToQAEmoji, user.TelegramUsername, moveTaskToQAText, mr.URL)
-	a.Telegram.SendMessage(msg)
+	if err := a.Telegram.SendMessage(msg); err != nil {
+		return err
+	}
+
+	mr.NeedQANotify = false
+	if _, err := a.DB.SaveMR(mr); err != nil {
+		return err
+	}
 
 	return nil
 }

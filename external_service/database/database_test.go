@@ -105,6 +105,7 @@ func (f *fixture) createMRs(authorID, n int) []models.MR {
 			URL:            th.String(),
 			AuthorID:       &authorID,
 			NeedJiraUpdate: true,
+			NeedQANotify:   true,
 		}
 		assert.NoError(f.T, f.db.QueryRow(q, mr.URL, mr.AuthorID, mr.NeedJiraUpdate).Scan(&mr.ID))
 		mrs[i] = mr

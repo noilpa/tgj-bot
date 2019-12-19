@@ -90,6 +90,7 @@ type MR struct {
 	JiraPriority   int
 	JiraStatus     int
 	NeedJiraUpdate bool
+	NeedQANotify   bool
 }
 
 func (mr *MR) ExtractJiraID(title string) {

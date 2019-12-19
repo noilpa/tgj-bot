@@ -163,6 +163,7 @@ func TestClient_GetNeedToUpdateFromJiraMRs(t *testing.T) {
 		URL:            th.String(),
 		AuthorID:       &user.ID,
 		NeedJiraUpdate: false,
+		NeedQANotify:   true,
 	}
 	mr1, err := f.CreateMR(mr1)
 	require.NoError(t, err)

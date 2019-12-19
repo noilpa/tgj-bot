@@ -7,7 +7,7 @@ import (
 )
 
 func (c *Client) GetAllMRs() (mrs []models.MR, err error) {
-	q := `SELECT id, url, author_id, is_closed, jira_id, jira_priority, jira_status, gitlab_id, need_jira_update FROM mrs`
+	q := `SELECT id, url, author_id, is_closed, jira_id, jira_priority, jira_status, gitlab_id, need_jira_update, need_qa_notify FROM mrs`
 	rows, err := c.db.Query(q)
 	if err != nil {
 		err = ce.WrapWithLog(err, "get all mrs")
@@ -18,7 +18,7 @@ func (c *Client) GetAllMRs() (mrs []models.MR, err error) {
 	var mr models.MR
 	for rows.Next() {
 		if err = rows.Scan(&mr.ID, &mr.URL, &mr.AuthorID, &mr.IsClosed, &mr.JiraID, &mr.JiraPriority,
-			&mr.JiraStatus, &mr.GitlabID, &mr.NeedJiraUpdate); err != nil {
+			&mr.JiraStatus, &mr.GitlabID, &mr.NeedJiraUpdate, &mr.NeedQANotify); err != nil {
 			err = ce.WrapWithLog(err, "get all mrs")
 			return
 		}
@@ -28,7 +28,7 @@ func (c *Client) GetAllMRs() (mrs []models.MR, err error) {
 }
 
 func (c *Client) GetNeedToUpdateFromJiraMRs() (mrs []models.MR, err error) {
-	q := `SELECT id, url, author_id, is_closed, jira_id, jira_priority, jira_status, gitlab_id, need_jira_update 
+	q := `SELECT id, url, author_id, is_closed, jira_id, jira_priority, jira_status, gitlab_id, need_jira_update, need_qa_notify 
 			FROM mrs WHERE need_jira_update=True`
 	rows, err := c.db.Query(q)
 	if err != nil {
@@ -40,7 +40,7 @@ func (c *Client) GetNeedToUpdateFromJiraMRs() (mrs []models.MR, err error) {
 	var mr models.MR
 	for rows.Next() {
 		if err = rows.Scan(&mr.ID, &mr.URL, &mr.AuthorID, &mr.IsClosed, &mr.JiraID, &mr.JiraPriority,
-			&mr.JiraStatus, &mr.GitlabID, &mr.NeedJiraUpdate); err != nil {
+			&mr.JiraStatus, &mr.GitlabID, &mr.NeedJiraUpdate, &mr.NeedQANotify); err != nil {
 			err = ce.WrapWithLog(err, "get need to update from jira mrs")
 			return
 		}
@@ -50,9 +50,9 @@ func (c *Client) GetNeedToUpdateFromJiraMRs() (mrs []models.MR, err error) {
 }
 
 func (c *Client) CreateMR(mr models.MR) (models.MR, error) {
-	q := `INSERT INTO mrs (url, author_id, gitlab_id, is_closed, jira_id, jira_priority, jira_status, need_jira_update) 
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`
-	err := c.db.QueryRow(q, mr.URL, mr.AuthorID, mr.GitlabID, mr.IsClosed, mr.JiraID, mr.JiraPriority, mr.JiraStatus, mr.NeedJiraUpdate).Scan(&mr.ID)
+	q := `INSERT INTO mrs (url, author_id, gitlab_id, is_closed, jira_id, jira_priority, jira_status, need_jira_update, need_qa_notify) 
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`
+	err := c.db.QueryRow(q, mr.URL, mr.AuthorID, mr.GitlabID, mr.IsClosed, mr.JiraID, mr.JiraPriority, mr.JiraStatus, mr.NeedJiraUpdate, mr.NeedQANotify).Scan(&mr.ID)
 	if err != nil {
 		err = ce.WrapWithLog(err, "create mr")
 		return mr, err
@@ -61,8 +61,8 @@ func (c *Client) CreateMR(mr models.MR) (models.MR, error) {
 }
 
 func (c *Client) SaveMR(mr models.MR) (models.MR, error) {
-	q := `UPDATE mrs SET is_closed=$2, jira_id=$3, jira_priority=$4, jira_status=$5, gitlab_id=$6, need_jira_update=$7 WHERE id=$1`
-	_, err := c.db.Exec(q, mr.ID, mr.IsClosed, mr.JiraID, mr.JiraPriority, mr.JiraStatus, mr.GitlabID, mr.NeedJiraUpdate)
+	q := `UPDATE mrs SET is_closed=$2, jira_id=$3, jira_priority=$4, jira_status=$5, gitlab_id=$6, need_jira_update=$7, need_qa_notify=$8 WHERE id=$1`
+	_, err := c.db.Exec(q, mr.ID, mr.IsClosed, mr.JiraID, mr.JiraPriority, mr.JiraStatus, mr.GitlabID, mr.NeedJiraUpdate, mr.NeedQANotify)
 	if err != nil {
 		err = ce.WrapWithLog(err, "save mr")
 		return mr, err
@@ -71,7 +71,7 @@ func (c *Client) SaveMR(mr models.MR) (models.MR, error) {
 }
 
 func (c *Client) GetOpenedMRs() (mrs []models.MR, err error) {
-	q := `SELECT id, url, author_id, is_closed, jira_id, jira_priority, jira_status, gitlab_id, need_jira_update 
+	q := `SELECT id, url, author_id, is_closed, jira_id, jira_priority, jira_status, gitlab_id, need_jira_update, need_qa_notify 
 			FROM mrs WHERE is_closed = FALSE`
 	rows, err := c.db.Query(q)
 	if err != nil {
@@ -83,7 +83,7 @@ func (c *Client) GetOpenedMRs() (mrs []models.MR, err error) {
 	var mr models.MR
 	for rows.Next() {
 		if err = rows.Scan(&mr.ID, &mr.URL, &mr.AuthorID, &mr.IsClosed, &mr.JiraID, &mr.JiraPriority,
-			&mr.JiraStatus, &mr.GitlabID, &mr.NeedJiraUpdate); err != nil {
+			&mr.JiraStatus, &mr.GitlabID, &mr.NeedJiraUpdate, &mr.NeedQANotify); err != nil {
 			err = ce.WrapWithLog(err, "get opened mrs")
 			return
 		}
@@ -100,7 +100,7 @@ func (c *Client) CloseMRs() (mrs []models.MR, err error) {
 			AND id NOT IN (SELECT id 
 						   FROM mrs 
 			    		   WHERE is_closed=True)			
-		  RETURNING id, url, author_id, is_closed, gitlab_id, jira_status, need_jira_update;`
+		  RETURNING id, url, author_id, is_closed, gitlab_id, jira_status, need_jira_update, need_qa_notify;`
 	rows, err := c.db.Query(q)
 	if err != nil {
 		err = ce.WrapWithLog(ce.ErrCloseMRs, err.Error())
@@ -110,7 +110,7 @@ func (c *Client) CloseMRs() (mrs []models.MR, err error) {
 
 	var mr models.MR
 	for rows.Next() {
-		if err = rows.Scan(&mr.ID, &mr.URL, &mr.AuthorID, &mr.IsClosed, &mr.GitlabID, &mr.JiraStatus, &mr.NeedJiraUpdate); err != nil {
+		if err = rows.Scan(&mr.ID, &mr.URL, &mr.AuthorID, &mr.IsClosed, &mr.GitlabID, &mr.JiraStatus, &mr.NeedJiraUpdate, &mr.NeedQANotify); err != nil {
 			err = ce.WrapWithLog(err, "get closed mrs id")
 			return nil, err
 		}
@@ -131,9 +131,9 @@ func (c *Client) CloseMR(id int) error {
 }
 
 func (c *Client) GetMrByID(id int) (mr models.MR, err error) {
-	q := `SELECT id, url, author_id, jira_id, jira_priority, jira_status, is_closed, gitlab_id, need_jira_update FROM mrs WHERE id = $1`
+	q := `SELECT id, url, author_id, jira_id, jira_priority, jira_status, is_closed, gitlab_id, need_jira_update, need_qa_notify FROM mrs WHERE id = $1`
 	err = c.db.QueryRow(q, id).Scan(&mr.ID, &mr.URL, &mr.AuthorID, &mr.JiraID, &mr.JiraPriority,
-		&mr.JiraStatus, &mr.IsClosed, &mr.GitlabID, &mr.NeedJiraUpdate)
+		&mr.JiraStatus, &mr.IsClosed, &mr.GitlabID, &mr.NeedJiraUpdate, &mr.NeedQANotify)
 	if err != nil {
 		err = ce.WrapWithLog(err, "get mr by id")
 	}

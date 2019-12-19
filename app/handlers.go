@@ -154,6 +154,7 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 		AuthorID:       &author.ID,
 		GitlabID:       mrGitlabID,
 		NeedJiraUpdate: true,
+		NeedQANotify:   true,
 	}
 	mr, err = a.DB.CreateMR(mr)
 	if err != nil {
@@ -247,7 +248,7 @@ func (a *App) updateReviews() error {
 		}
 		log.Printf("successfully set label for mr_id=%d", mr.GitlabID)
 
-		if mr.IsOnReview() {
+		if mr.IsOnReview() && mr.NeedQANotify {
 			if err := a.notifyReviewTask(mr); err != nil {
 				log.Printf("err notify task mr_id=%d: %v", mr.GitlabID, err)
 				continue

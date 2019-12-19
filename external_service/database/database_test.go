@@ -98,14 +98,15 @@ func (f *fixture) createMR(authorID int) models.MR {
 }
 
 func (f *fixture) createMRs(authorID, n int) []models.MR {
-	q := `INSERT INTO mrs (url, author_id) VALUES ($1, $2) RETURNING id`
+	q := `INSERT INTO mrs (url, author_id, need_jira_update) VALUES ($1,$2,$3) RETURNING id`
 	mrs := make([]models.MR, n, n)
 	for i := 0; i < n; i++ {
 		mr := models.MR{
-			URL:      th.String(),
-			AuthorID: &authorID,
+			URL:            th.String(),
+			AuthorID:       &authorID,
+			NeedJiraUpdate: true,
 		}
-		assert.NoError(f.T, f.db.QueryRow(q, mr.URL, mr.AuthorID).Scan(&mr.ID))
+		assert.NoError(f.T, f.db.QueryRow(q, mr.URL, mr.AuthorID, mr.NeedJiraUpdate).Scan(&mr.ID))
 		mrs[i] = mr
 	}
 	return mrs

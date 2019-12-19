@@ -81,14 +81,15 @@ func IsValidRole(r Role) bool {
 }
 
 type MR struct {
-	ID           int
-	URL          string
-	AuthorID     *int
-	IsClosed     bool
-	GitlabID     int
-	JiraID       int
-	JiraPriority int
-	JiraStatus   int
+	ID             int
+	URL            string
+	AuthorID       *int
+	IsClosed       bool
+	GitlabID       int
+	JiraID         int
+	JiraPriority   int
+	JiraStatus     int
+	NeedJiraUpdate bool
 }
 
 func (mr *MR) ExtractJiraID(title string) {
@@ -108,6 +109,15 @@ func (mr *MR) IsHighest() bool {
 
 func (mr *MR) IsOnReview() bool {
 	return mr.JiraStatus == jira.StatusOnReview
+}
+
+func (mr *MR) CheckNoNeedUpdateFromJira() {
+	if mr.JiraStatus == jira.StatusMerged ||
+		mr.JiraStatus == jira.StatusApproved ||
+		mr.JiraStatus == jira.StatusReady ||
+		mr.JiraStatus == jira.StatusDone {
+		mr.NeedJiraUpdate = false
+	}
 }
 
 type Review struct {

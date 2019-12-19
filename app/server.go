@@ -158,7 +158,7 @@ func (a *App) updateTasksFromJira() {
 		for range time.Tick(time.Duration(a.Config.Timings.UpdateJiraTasksPeriod)) {
 			ctx := context.Background()
 			log.Println("updating mrs info from jira...")
-			mrs, err := a.DB.GetAllMRs()
+			mrs, err := a.DB.GetNeedToUpdateFromJiraMRs()
 			if err != nil {
 				a.logError(err)
 				continue
@@ -193,6 +193,8 @@ func (a *App) updateTaskFromJira(ctx context.Context, mr models.MR) error {
 		if jiraIssue != nil {
 			mr.JiraPriority = jiraIssue.Priority
 			mr.JiraStatus = jiraIssue.Status
+			mr.CheckNoNeedUpdateFromJira()
+
 			isChanged = true
 		}
 	}

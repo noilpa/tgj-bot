@@ -150,9 +150,10 @@ func (a *App) mrHandler(update tgbotapi.Update) (err error) {
 	}
 
 	mr := models.MR{
-		URL:      mrUrl,
-		AuthorID: &author.ID,
-		GitlabID: mrGitlabID,
+		URL:            mrUrl,
+		AuthorID:       &author.ID,
+		GitlabID:       mrGitlabID,
+		NeedJiraUpdate: true,
 	}
 	mr, err = a.DB.CreateMR(mr)
 	if err != nil {

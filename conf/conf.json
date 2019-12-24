@@ -69,5 +69,10 @@
     "update_gitlab_state": "10m",
     "update_jira_tasks": "10m",
     "check_notify": "1m"
+  },
+  "meeting": {
+    "is_allow": true,
+    "time": "11:55",
+    "message": "Daily meeting is coming \uD83D\uDE40"
   }
 }

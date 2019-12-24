@@ -24,6 +24,13 @@ type Config struct {
 	Notifier NotifierConfig  `json:"notifier"`
 	Jira     jira.Config     `json:"jira"`
 	Timings  TimingsConf     `json:"timings"`
+	Meeting  Meeting         `json:"meeting"`
+}
+
+type Meeting struct {
+	IsAllow bool `json:"is_allow"`
+	// use HH:MM layout
+	Time string `json:"time_hour"`
 }
 
 type ReviewParty struct {
@@ -75,6 +82,7 @@ func (a *App) Serve() (err error) {
 	a.notify()
 	a.updateTasksFromJira()
 	a.updateStateFromGitlab()
+	a.meeting()
 
 	for update := range a.Telegram.Updates {
 		if update.Message == nil {
@@ -171,6 +179,33 @@ func (a *App) updateTasksFromJira() {
 			}
 		}
 	}()
+}
+
+func (a *App) meeting() {
+	if !a.Config.Meeting.IsAllow {
+		log.Println("skip meeting notify")
+		return
+	}
+	go func() {
+		specialTime, err := time.Parse("15:04", a.Config.Meeting.Time)
+		if err != nil {
+			log.Printf("err config time, err: %v\n", err)
+			return
+		}
+		var curDay time.Weekday
+		for t := range time.Tick(time.Minute) {
+			weekDay := t.Weekday()
+			if curDay == weekDay || weekDay == time.Saturday || weekDay == time.Sunday {
+				continue
+			}
+
+			if t.Hour() == specialTime.Hour() && t.Minute() == specialTime.Minute() {
+				log.Println(a.Telegram.SendMessage("Daily meeting is coming 🙀"))
+				curDay = t.Weekday()
+			}
+		}
+	}()
+
 }
 
 func (a *App) updateTaskFromJira(ctx context.Context, mr models.MR) error {

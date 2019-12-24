@@ -72,6 +72,7 @@
   },
   "meeting": {
     "is_allow": true,
-    "time": "12:00"
+    "time": "11:55",
+    "message": "Daily meeting is coming \uD83D\uDE40"
   }
 }

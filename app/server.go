@@ -32,6 +32,7 @@ type Meeting struct {
 	// use HH:MM layout
 	Time string `json:"time_hour"`
 	Message string `json:"message"`
+	IsPeriodic bool `json:"is_periodic"`
 }
 
 type ReviewParty struct {
@@ -202,7 +203,10 @@ func (a *App) meeting() {
 
 			if t.Hour() == specialTime.Hour() && t.Minute() == specialTime.Minute() {
 				log.Println(a.Telegram.SendMessage(a.Config.Meeting.Message))
-				curDay = t.Weekday()
+				if !a.Config.Meeting.IsPeriodic {
+					return
+				}
+				curDay = weekDay
 			}
 		}
 	}()

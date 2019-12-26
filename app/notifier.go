@@ -161,6 +161,9 @@ func (a *App) buildNotifierMRString(uID int) (s string, err error) {
 				err = ce.WrapWithLog(err, "notifier build message")
 				return s, err
 			}
+			if mr.IsWIP() {
+				continue
+			}
 			s += fmt.Sprintf("%s %s\n", getPriorityEmoji(mr.JiraPriority), mr.URL)
 		}
 	}

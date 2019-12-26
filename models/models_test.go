@@ -39,3 +39,24 @@ func TestMR_CheckNoNeedUpdateFromJira(t *testing.T) {
 		}
 	}
 }
+
+func TestMR_IsWIP(t *testing.T) {
+	tests := []struct {
+		labels []string
+		exp    bool
+	}{
+		{nil, false},
+		{[]string{"foo", "bar"}, false},
+		{[]string{"foo", "bar", "WIP"}, true},
+	}
+
+	mr := MR{}
+
+	for index, item := range tests {
+		mr.GitlabLabels = item.labels
+
+		if item.exp != mr.IsWIP() {
+			t.Errorf("failed at index:%d %v vs %v", index, item.exp, mr.IsWIP())
+		}
+	}
+}

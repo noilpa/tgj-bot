@@ -46,6 +46,12 @@ type GitlabMR struct {
 	ID       int
 	Title    string
 	AuthorID int
+	State    string
+	Labels   []string
+}
+
+func (gitlabMR *GitlabMR) IsOpened() bool {
+	return gitlabMR.State == opened
 }
 
 func RunGitlab(cfg GitlabConfig) (client Client, err error) {
@@ -112,7 +118,7 @@ func (c *Client) CheckMrComments(mrID int) (users map[int]bool, err error) {
 
 func (c *Client) GetMrByID(mrID int) (*GitlabMR, error) {
 	spew.Dump(c)
-	item, _, err := c.Gitlab.MergeRequests.GetMergeRequest(c.Project.ID, mrID, nil)
+	item, err := c.loadMR(mrID)
 	if err != nil {
 		return nil, err
 	}
@@ -121,18 +127,11 @@ func (c *Client) GetMrByID(mrID int) (*GitlabMR, error) {
 		ID:       item.ID,
 		Title:    item.Title,
 		AuthorID: item.Author.ID,
+		State:    item.State,
+		Labels:   item.Labels,
 	}
 
 	return mr, nil
-}
-
-func (c *Client) MrIsOpen(mrID int) (bool, error) {
-	mr, _, err := c.Gitlab.MergeRequests.GetMergeRequest(c.Project.ID, mrID, nil)
-	if err != nil {
-		return false, err
-	}
-	log.Printf("Get MR from gitlab %d: %v\n", mrID, mr)
-	return mr.State == opened, nil
 }
 
 func (c *Client) GetUserByID(gitlabID int) (name string, err error) {

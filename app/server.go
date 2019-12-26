@@ -30,9 +30,9 @@ type Config struct {
 type Meeting struct {
 	IsAllow bool `json:"is_allow"`
 	// use HH:MM layout
-	Time string `json:"time_hour"`
-	Message string `json:"message"`
-	IsPeriodic bool `json:"is_periodic"`
+	Time       string `json:"time_hour"`
+	Message    string `json:"message"`
+	IsPeriodic bool   `json:"is_periodic"`
 }
 
 type ReviewParty struct {

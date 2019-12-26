@@ -18,7 +18,9 @@ const (
 )
 
 const (
-	ReviewedLabel = "reviewed"
+	GitlabLabelWIP      = "WIP"
+	GitlabLabelServices = "services"
+	GitlabLabelReviewed = "reviewed"
 )
 
 var jiraRegExp = regexp.MustCompile(`\[NC-([0-9]+)\]*`)
@@ -91,6 +93,7 @@ type MR struct {
 	JiraStatus     int
 	NeedJiraUpdate bool
 	NeedQANotify   bool
+	GitlabLabels   []string
 }
 
 func (mr *MR) ExtractJiraID(title string) {
@@ -119,6 +122,16 @@ func (mr *MR) CheckNoNeedUpdateFromJira() {
 		mr.JiraStatus == jira.StatusDone {
 		mr.NeedJiraUpdate = false
 	}
+}
+
+func (mr *MR) IsWIP() bool {
+	for _, label := range mr.GitlabLabels {
+		if GitlabLabelWIP == label {
+			return true
+		}
+	}
+
+	return false
 }
 
 type Review struct {

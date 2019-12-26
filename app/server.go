@@ -30,7 +30,7 @@ type Config struct {
 type Meeting struct {
 	IsAllow bool `json:"is_allow"`
 	// use HH:MM layout
-	Time       string `json:"time_hour"`
+	Time       string `json:"time"`
 	Message    string `json:"message"`
 	IsPeriodic bool   `json:"is_periodic"`
 }
@@ -78,9 +78,6 @@ const (
 const success = "Success! 👍"
 
 func (a *App) Serve() (err error) {
-	if err := a.migrateData(); err != nil {
-		return err
-	}
 	a.notify()
 	a.updateTasksFromJira()
 	a.updateStateFromGitlab()
@@ -244,34 +241,6 @@ func (a *App) updateTaskFromJira(ctx context.Context, mr models.MR) error {
 			return err
 		}
 	}
-
-	return nil
-}
-
-func (a *App) migrateData() error {
-	log.Println("migrate data started...")
-
-	// fill gitlab_id from url in MRS
-	mrs, err := a.DB.GetAllMRs()
-	if err != nil {
-		return err
-	}
-	for _, mr := range mrs {
-		if mr.IsClosed || mr.GitlabID > 0 {
-			continue
-		}
-
-		gitlabID, err := models.GetGitlabID(mr.URL)
-		if err != nil {
-			return err
-		}
-		mr.GitlabID = gitlabID
-		if _, err := a.DB.SaveMR(mr); err != nil {
-			return err
-		}
-	}
-
-	log.Println("migrating data finished")
 
 	return nil
 }

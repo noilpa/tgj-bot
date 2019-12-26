@@ -9,3 +9,5 @@ tgj\.db
 
 *.gen.go
 tags
+
+conf/test_conf.json

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/url"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -132,6 +133,23 @@ func (mr *MR) IsWIP() bool {
 	}
 
 	return false
+}
+
+func (mr *MR) IsLabelsEqual(labels []string) bool {
+	sort.Strings(mr.GitlabLabels)
+	sort.Strings(labels)
+
+	if len(mr.GitlabLabels) != len(labels) {
+		return false
+	}
+
+	for index := range mr.GitlabLabels {
+		if mr.GitlabLabels[index] != labels[index] {
+			return false
+		}
+	}
+
+	return true
 }
 
 type Review struct {

@@ -230,9 +230,11 @@ func (a *App) updateReviews() error {
 			continue
 		}
 
-		mr.GitlabLabels = gitlabMR.Labels
-		if _, err := a.DB.SaveMR(mr); err != nil {
-			_ = ce.WrapWithLog(err, "update mr info")
+		if !mr.IsLabelsEqual(gitlabMR.Labels) {
+			mr.GitlabLabels = gitlabMR.Labels
+			if _, err := a.DB.SaveMR(mr); err != nil {
+				_ = ce.WrapWithLog(err, "update mr info")
+			}
 		}
 
 		log.Printf("Update reviews mr_id=%d is_open=%v, labels=%s", mr.ID, gitlabMR.IsOpened(), mr.GitlabLabels)

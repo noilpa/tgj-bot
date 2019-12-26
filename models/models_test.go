@@ -60,3 +60,28 @@ func TestMR_IsWIP(t *testing.T) {
 		}
 	}
 }
+
+func TestMR_IsLabelsEqual(t *testing.T) {
+	tests := []struct {
+		gitlabLabels   []string
+		comparedLabels []string
+		exp            bool
+	}{
+		{exp: true},
+		{exp: false, gitlabLabels: []string{"boo", "bar"}},
+		{exp: true, gitlabLabels: []string{"boo", "bar"}, comparedLabels: []string{"boo", "bar"}},
+		{exp: true, gitlabLabels: []string{"boo", "bar"}, comparedLabels: []string{"bar", "boo"}},
+		{exp: false, gitlabLabels: []string{"boo", "bar"}, comparedLabels: []string{"tmp"}},
+	}
+
+	mr := MR{}
+
+	for index, item := range tests {
+		mr.GitlabLabels = item.gitlabLabels
+
+		value := mr.IsLabelsEqual(item.comparedLabels)
+		if item.exp != value {
+			t.Errorf("failed at index:%d %v vs %v", index, item.gitlabLabels, item.comparedLabels)
+		}
+	}
+}

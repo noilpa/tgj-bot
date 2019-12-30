@@ -48,6 +48,7 @@ type GitlabMR struct {
 	AuthorID int
 	State    string
 	Labels   []string
+	IsWIP    bool
 }
 
 func (gitlabMR *GitlabMR) IsOpened() bool {
@@ -129,6 +130,7 @@ func (c *Client) GetMrByID(mrID int) (*GitlabMR, error) {
 		AuthorID: item.Author.ID,
 		State:    item.State,
 		Labels:   item.Labels,
+		IsWIP:    item.WorkInProgress,
 	}
 
 	return mr, nil

@@ -1,0 +1,1 @@
+ALTER TABLE mrs ADD COLUMN gitlab_is_wip bool DEFAULT FALSE;

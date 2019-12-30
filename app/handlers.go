@@ -230,8 +230,17 @@ func (a *App) updateReviews() error {
 			continue
 		}
 
+		mrChanged := false
+
 		if !mr.IsLabelsEqual(gitlabMR.Labels) {
 			mr.GitlabLabels = gitlabMR.Labels
+			mrChanged = true
+		}
+		if mr.GitlabIsWIP != gitlabMR.IsWIP {
+			mr.GitlabIsWIP = gitlabMR.IsWIP
+			mrChanged = true
+		}
+		if mrChanged {
 			if _, err := a.DB.SaveMR(mr); err != nil {
 				_ = ce.WrapWithLog(err, "update mr info")
 			}

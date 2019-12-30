@@ -95,6 +95,7 @@ type MR struct {
 	NeedJiraUpdate bool
 	NeedQANotify   bool
 	GitlabLabels   []string
+	GitlabIsWIP    bool
 }
 
 func (mr *MR) ExtractJiraID(title string) {
@@ -126,6 +127,10 @@ func (mr *MR) CheckNoNeedUpdateFromJira() {
 }
 
 func (mr *MR) IsWIP() bool {
+	if mr.GitlabIsWIP {
+		return true
+	}
+
 	for _, label := range mr.GitlabLabels {
 		if GitlabLabelWIP == label {
 			return true

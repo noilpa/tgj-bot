@@ -224,9 +224,30 @@ func (a *App) updateReviews() error {
 		return err
 	}
 	for _, mr := range mrs {
-		mrIsOpen, err := a.Gitlab.MrIsOpen(mr.GitlabID)
-		log.Printf("Update reviews mr_id=%d is_open=%v", mr.ID, mrIsOpen)
-		if !mrIsOpen {
+		gitlabMR, err := a.Gitlab.GetMrByID(mr.GitlabID)
+		if err != nil {
+			_ = ce.WrapWithLog(err, fmt.Sprintf("load mr by id: %d", mr.GitlabID))
+			continue
+		}
+
+		mrChanged := false
+
+		if !mr.IsLabelsEqual(gitlabMR.Labels) {
+			mr.GitlabLabels = gitlabMR.Labels
+			mrChanged = true
+		}
+		if mr.GitlabIsWIP != gitlabMR.IsWIP {
+			mr.GitlabIsWIP = gitlabMR.IsWIP
+			mrChanged = true
+		}
+		if mrChanged {
+			if _, err := a.DB.SaveMR(mr); err != nil {
+				_ = ce.WrapWithLog(err, "update mr info")
+			}
+		}
+
+		log.Printf("Update reviews mr_id=%d is_open=%v, labels=%s", mr.ID, gitlabMR.IsOpened(), mr.GitlabLabels)
+		if !gitlabMR.IsOpened() {
 			_ = ce.WrapWithLog(a.DB.CloseMR(mr.ID), "close mr err")
 		}
 		if err = a.updateMrLikes(mr); err != nil {
@@ -242,7 +263,7 @@ func (a *App) updateReviews() error {
 		return err
 	}
 	for _, mr := range closedMRs {
-		if err = a.Gitlab.SetLabelToMR(mr.GitlabID, models.ReviewedLabel); err != nil {
+		if err = a.Gitlab.SetLabelToMR(mr.GitlabID, models.GitlabLabelReviewed); err != nil {
 			log.Printf("err set label for mr_id=%d: %v", mr.GitlabID, err)
 			continue
 		}
@@ -385,11 +406,7 @@ func (a *App) isMrAlreadyExist(mrID int) bool {
 	if err != nil {
 		return false
 	}
-	defaultValue := models.MR{}
-	if mr != defaultValue {
-		return true
-	}
-	return false
+	return mr.ID > 0
 }
 
 func (a *App) returnMrParty(mrID int) (err error) {

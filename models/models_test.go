@@ -39,3 +39,52 @@ func TestMR_CheckNoNeedUpdateFromJira(t *testing.T) {
 		}
 	}
 }
+
+func TestMR_IsWIP(t *testing.T) {
+	tests := []struct {
+		isWip  bool
+		labels []string
+		exp    bool
+	}{
+		{isWip: true, labels: nil, exp: true},
+		{isWip: false, labels: nil, exp: false},
+		{isWip: false, labels: []string{"foo", "bar"}, exp: false},
+		{isWip: false, labels: []string{"foo", "bar", "WIP"}, exp: true},
+	}
+
+	mr := MR{}
+
+	for index, item := range tests {
+		mr.GitlabIsWIP = item.isWip
+		mr.GitlabLabels = item.labels
+
+		if item.exp != mr.IsWIP() {
+			t.Errorf("failed at index:%d %v vs %v", index, item.exp, mr.IsWIP())
+		}
+	}
+}
+
+func TestMR_IsLabelsEqual(t *testing.T) {
+	tests := []struct {
+		gitlabLabels   []string
+		comparedLabels []string
+		exp            bool
+	}{
+		{exp: true},
+		{exp: false, gitlabLabels: []string{"boo", "bar"}},
+		{exp: true, gitlabLabels: []string{"boo", "bar"}, comparedLabels: []string{"boo", "bar"}},
+		{exp: true, gitlabLabels: []string{"boo", "bar"}, comparedLabels: []string{"bar", "boo"}},
+		{exp: false, gitlabLabels: []string{"boo", "bar"}, comparedLabels: []string{"tmp"}},
+	}
+
+	mr := MR{}
+
+	for index, item := range tests {
+		mr.GitlabLabels = item.gitlabLabels
+
+		value := mr.IsLabelsEqual(item.comparedLabels)
+		if item.exp != value {
+			t.Errorf("failed at index:%d %v vs %v", index, item.gitlabLabels, item.comparedLabels)
+		}
+	}
+}

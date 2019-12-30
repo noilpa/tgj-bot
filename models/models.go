@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/url"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -18,7 +19,9 @@ const (
 )
 
 const (
-	ReviewedLabel = "reviewed"
+	GitlabLabelWIP      = "WIP"
+	GitlabLabelServices = "services"
+	GitlabLabelReviewed = "reviewed"
 )
 
 var jiraRegExp = regexp.MustCompile(`\[NC-([0-9]+)\]*`)
@@ -91,6 +94,8 @@ type MR struct {
 	JiraStatus     int
 	NeedJiraUpdate bool
 	NeedQANotify   bool
+	GitlabLabels   []string
+	GitlabIsWIP    bool
 }
 
 func (mr *MR) ExtractJiraID(title string) {
@@ -119,6 +124,37 @@ func (mr *MR) CheckNoNeedUpdateFromJira() {
 		mr.JiraStatus == jira.StatusDone {
 		mr.NeedJiraUpdate = false
 	}
+}
+
+func (mr *MR) IsWIP() bool {
+	if mr.GitlabIsWIP {
+		return true
+	}
+
+	for _, label := range mr.GitlabLabels {
+		if GitlabLabelWIP == label {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (mr *MR) IsLabelsEqual(labels []string) bool {
+	sort.Strings(mr.GitlabLabels)
+	sort.Strings(labels)
+
+	if len(mr.GitlabLabels) != len(labels) {
+		return false
+	}
+
+	for index := range mr.GitlabLabels {
+		if mr.GitlabLabels[index] != labels[index] {
+			return false
+		}
+	}
+
+	return true
 }
 
 type Review struct {
